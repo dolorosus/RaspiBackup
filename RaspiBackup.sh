@@ -42,9 +42,11 @@
 #
 #
 #
-
+# Defaults
 SDCARD=/dev/mmcblk0
-BOOTSIZE=44M
+#
+# Size of bootpartiotion in MB
+BOOTSIZE=44
 
 setup () {
 	#
@@ -87,8 +89,6 @@ trace () {
 	echo -e "${YELLOW}${1}${NOATT}"
 }
 
-
-
 # Echos an error string in red text and exit
 error () {
 	echo -e "${RED}${1}${NOATT}" >&2
@@ -113,16 +113,14 @@ BOOTSIZE=${BOOTSIZE:-44}
 
 	trace "Creating partitions on ${LOOPBACK}"
 	parted -s ${LOOPBACK} mktable msdos
-	parted -s ${LOOPBACK} mkpart primary fat32 4MiB ${BOOTSIZE}
-	parted -s ${LOOPBACK} mkpart primary ext4 ${BOOTSIZE} 100%
+	parted -s ${LOOPBACK} mkpart primary fat32 4MiB ${BOOTSIZE}MiB
+	parted -s ${LOOPBACK} mkpart primary ext4 ${BOOTSIZE}MiB 100%
 	trace "Formatting partitions"
 	partx --add ${LOOPBACK}
-	mkfs.vfat -n Boot -F32 ${LOOPBACK}p1
+	mkfs.vfat -n BOOT -F32 ${LOOPBACK}p1
 	mkfs.ext4 ${LOOPBACK}p2
 
 }
-
-
 
 change_bootenv () {
 
@@ -166,7 +164,7 @@ change_bootenv () {
 				editmanual=true
 			}
 				
-		} || {
+		}| {
 			trace "PARTUUID=${srcpartuuid[${p}]} not found in $fstab_tmp"
 			editmanual=true
 		}
@@ -179,11 +177,11 @@ change_bootenv () {
 		trace "correct fstab on destination manually."
 	else
 		cp $fstab_tmp ${MOUNTDIR}/etc/fstab
-		success "Changing PARTUUIDs in fstab succsessful"
+		success "Changeing PARTUUIDs in fstab succsessful"
 	fi 
 	
 	#
-	# Changing /boot/cmdline.txt
+	# Changeing /boot/cmdline.txt
 	#
 	editmanual=false
 	cmdline_tmp=/tmp/cmdline.txt
@@ -208,7 +206,7 @@ change_bootenv () {
 		trace "correct cmdline.txt on destination manually."
 	else
 		cp $cmdline_tmp ${MOUNTDIR}/boot/cmdline.txt
-		success "Changing PARTUUID in cmdline.txt succsessful"
+		success "Changeing PARTUUID in cmdline.txt succsessful"
 	fi 
 }
 
@@ -245,7 +243,7 @@ do_mount () {
 		partx --add ${LOOPBACK}
 	fi
 
-	trace "Mounting ${LOOPBACK}1 and ${LOOPBACK}2 to ${MOUNTDIR}"
+	trace "Mounting ${LOOPBACK}p1 and ${LOOPBACK}p2 to ${MOUNTDIR}"
 	if [ ! -n "${opt_mountdir}" ]; then
 		mkdir ${MOUNTDIR}
 	fi
@@ -297,7 +295,7 @@ do_umount () {
 	trace "Flushing to disk"
 	sync; sync
 
-	trace "Unmounting ${LOOPBACK}1 and ${LOOPBACK}2 from ${MOUNTDIR}"
+	trace "Unmounting ${LOOPBACK}p1 and ${LOOPBACK}p2 from ${MOUNTDIR}"
 	umount ${MOUNTDIR}/boot
 	umount ${MOUNTDIR}
 	if [ ! -n "${opt_mountdir}" ]; then
@@ -398,16 +396,19 @@ usage () {
 setup
 
 # Read the command from command line
-case ${1} in
-	start|mount|umount|gzip|cloneid|chbootenv|showdf) 
-		opt_command=${1}
-		;;
+case "${1}" in
+	
+	start|mount|umount|gzip|cloneid|chbootenv|showdf) opt_command=${1}
+	;;
+		
+		
 	-h|--help)
 		usage
 		exit 0
 		;;
 	*)
-		error "Invalid command or option: ${1}\nSee '${MYNAME} --help' for usage";;
+		error "Invalid command or option: ${1}\nSee '${MYNAME} --help for usage"
+		;;
 esac
 shift 1
 
@@ -551,7 +552,21 @@ case ${opt_command} in
 			do_compress
 			;;
 	cloneid)
-			do_cloneid
+			cat<<EOF
+	${YELLOW}
+	While cloneid still works, you may consider to adapt /boot/cmdline.txt and /etc/fstab.
+	${MYNAME} will assist you by using the ${BOLD}chbootenv${NOATT}${YELLOW} option.
+
+EOF
+			while true
+			do
+				read -p "Do you really wish to use cloneid? (y/n)" yn
+				case $yn in
+					[Yy]* ) do_cloneid; break;;
+					[Nn]* ) exit;;
+					* ) echo "Please answer yes or no.";;
+				esac
+			done
 			;;
 	chbootenv)
 			do_mount
