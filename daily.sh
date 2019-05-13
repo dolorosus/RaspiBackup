@@ -58,7 +58,7 @@ setup () {
 	export bcknewname="MyRaspi-${stamp}.img"
 	export tmppre="\#"
 
-	export bckscript="/home/pi/scripts/imgbck.bash"
+	export bckscript="/home/pi/scripts/RaspiBackup.sh"
 	export snapscript="/home/pi/scripts/btrfs-snapshot-rotation.sh"
 	export mark="manual"
 	export versions=28
