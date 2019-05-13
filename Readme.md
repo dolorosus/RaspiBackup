@@ -1,4 +1,4 @@
-# bkup_rpimage
+# RaspiBackup.sh
 Script to backup a Raspberry Pi SDCARD to an imagefile
 
 ## Author / Origin:
@@ -8,7 +8,7 @@ This script is a heavy modified version derived from script written by user `jin
 
 ## Usage
 
-RaspiBackup.sh.sh
+RaspiBackup.sh
 
 ### Usage:
 
