@@ -164,7 +164,7 @@ change_bootenv () {
 				editmanual=true
 			}
 				
-		}| {
+		}||{
 			trace "PARTUUID=${srcpartuuid[${p}]} not found in $fstab_tmp"
 			editmanual=true
 		}
@@ -195,7 +195,7 @@ change_bootenv () {
 				trace "PARTUUID ${dstpartuuid[2]} as not been changed in $cmdline_tmp"
 				editmanual=true
 			}
-		} || {
+		}||{
 				trace "PARTUUID ${srcpartuuid[2]} not found in  $cmdline_tmp"
 				editmanual=true
 		}
