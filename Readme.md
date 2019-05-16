@@ -4,7 +4,7 @@ This image can be directly written to a SDCARD
 
 ## Author / Origin:
 
-This script is a rewrite if a written by user `jinx`.
+This script is a rewrite of a scipt written by user `jinx`.
 
 
 ## Usage
