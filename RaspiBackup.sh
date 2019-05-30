@@ -14,32 +14,35 @@
 #  applications or just reboot the system. 
 #
 #
-# 2019-05-12 Dolorosus                  
-#        new: Function chbootenv. This function tries to change the PARTUUIDS 
+# 2019-05-30 Dolorosus
+#        Fix: typo for showdf command fixed
+#        Fix: Some cosmetics for better readable output 
+#
+# 2019-05-12 Dolorosus
+#        New: Function chbootenv. This function tries to change the PARTUUIDS 
 #             of /boot and / in fstab according to PARTUUID of the image.
 #
-#        fix: Removed dangerous copying of source partition table to the image
+#        Fix: Removed dangerous copying of source partition table to the image
 #             and replaced it with proper destination partition setup.
 # 
-# 2019-04-25 Dolorosus                  
-#        fix: Proper quoting of imagename. Now blanks in the imagename should be no longer 
+# 2019-04-25 Dolorosus
+#        Fix: Proper quoting of imagename. Now blanks in the imagename should be no longer 
 #             a problem.
 #
-# 2019-03-19 Dolorosus                  
-#        fix: Define colors only if connected to a terminal.
+# 2019-03-19 Dolorosus
+#        Fix: Define colors only if connected to a terminal.
 #             Thus output to file is no more cluttered.
 #
 # 2019-03-18 Dolorosus: 
-#               add: exclusion of files below /tmp,/proc,/run,/sys and 
-#                    also the swapfile /var/swap will be excluded from backup.
-#               add: Bumping the version to 1.1
-#
+#        New: Exclusion of files below /tmp,/proc,/run,/sys and 
+#             also the swapfile /var/swap will be excluded from backup.
+#        New: Bumping version to 1.1
+#        
 # 2019-03-17 Dolorosus: 
-#               add: -s parameter to create an image of a defined size.
-#               add: funtion cloneid to clone te UUID and the PTID from 
-#                    the SDCARD to the image. So restore is working on 
-#                    recent raspian versions.
-#
+#        New: -s parameter to create an image of a defined size.
+#        New: Funtion cloneid to clone te UUID and the PTID from 
+#             the SDCARD to the image.
+#        
 #
 #
 # Defaults
@@ -81,7 +84,7 @@ setup () {
 
 # Echo success messages in green
 success () {
-	echo -e "${GREEN}${1}${NOATT}"
+	echo -e "${GREEN}${1}${NOATT}\n"
 }
 
 # Echos traces with yellow text to distinguish from other output
@@ -266,7 +269,10 @@ do_backup () {
 			rsyncopt="$rsyncopt --log-file ${LOG}"
 		fi
 
+		trace "rsync /boot/ ${MOUNTDIR}/boot/"
 		rsync ${rsyncopt}  /boot/ ${MOUNTDIR}/boot/
+		trace ""
+		trace "rsync / to ${MOUNTDIR}"
 		rsync ${rsyncopt} --exclude='.gvfs/**' \
 			--exclude='tmp/**' \
 			--exclude='proc/**' \
@@ -285,9 +291,9 @@ do_backup () {
 
 do_showdf () {
 
-	echo -n "${GREEN}"
+	echo -n "${NOATT}"
 	df -m ${LOOPBACK}p1 ${LOOPBACK}p2
-	echo -n "$NOATT"
+	echo ""
 }
 
 # Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
@@ -355,8 +361,8 @@ usage () {
 	echo -e "        ${BOLD}umount${NOATT}     unmounts the 'sdimage' from 'mountdir'"
 	echo -e "        ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz"
 	echo -e "        ${BOLD}cloneid${NOATT}    clones the UUID/PTUUID from the current disk to the image"
-	echo -e "        ${BOLD}chbootenv${NOATT}    changes PARTUUID entries in fstab and cmdline.txt in the image"
-	echo -e "        ${BOLD}shodf${NOATT}      shows allocation of the image"
+	echo -e "        ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image"
+	echo -e "        ${BOLD}showdf${NOATT}     shows allocation of the image"
 	echo -e ""
 	echo -e "    Options:"
 	echo -e ""
@@ -533,7 +539,7 @@ case ${opt_command} in
 			if [ -n "${opt_compress}" ]; then
 				do_compress
 			fi
-			trace "SD Image backup process completed."
+			success "SD Image backup process completed."
 			if [ -n "${opt_log}" ]; then
 				trace "See rsync log in ${LOG}"
 			fi
@@ -543,7 +549,7 @@ case ${opt_command} in
 				do_create
 			fi
 			do_mount
-			trace "SD Image has been mounted and can be accessed at:\n    ${MOUNTDIR}"
+			success "SD Image has been mounted and can be accessed at:\n    ${MOUNTDIR}"
 			;;
 	umount)
 			do_umount
