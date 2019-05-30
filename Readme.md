@@ -16,14 +16,14 @@ E.g.:
 * RaspiBackup.sh mount [-c] sdimage [mountdir]
 * RaspiBackup.sh umount sdimage [mountdir]
 * RaspiBackup.sh gzip [-df] sdimage
-
+* RaspiBackup.sh showdf sdimage
 ### Commands:
 
 * *start* - starts complete backup of RPi's SD Card to 'sdimage'
 * *mount* - mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
 * *umount* - unmounts the 'sdimage' from 'mountdir'
 * *gzip* - compresses the 'sdimage' to 'sdimage'.gz
-
+* *showdf* - Shows allocation of image
 ### Options:
 
 * -c creates the SD Image if it does not exist
@@ -43,7 +43,7 @@ RaspiBackup.sh start -c /path/to/backup.img
 
 Start backup to `backup.img`, creating it if it does not exist, limiting 
  the size to 8000Mb.
- Remember you are responsible defineing the image size large enough to hold all files to backup! There is no size check. 
+ Remember you are responsible defineing the size large enough to hold all files to backup! There's no such thing as a size check. 
 ```
 RaspiBackup.sh start -s 8000 -c /path/to/backup.img
 ```
@@ -62,6 +62,11 @@ RaspiBackup.sh mount /path/to/backup.img /mnt/backup.img
 Unmount the SD Image from default mountdir (`/mnt/backup.img/`):
 ```
 RaspiBackup.sh umount /path/to/backup.img
+```
+
+show allocation of SD Image:
+```
+RaspiBackup.sh showdf /path/to/backup.img
 ```
 
 
