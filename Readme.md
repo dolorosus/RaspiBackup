@@ -1,6 +1,8 @@
 # RaspiBackup.sh
-Script to backup a Raspberry Pi SDCARD to an imagefile.
-This image can be directly written to a SDCARD
+Script to backup a Raspberry Pi SDCARD to a file. 
+The resulting file can be installed to a sdcard. 
+Refer to https://www.raspberrypi.org/documentation/installation/installing-images/README.md  
+
 
 ## Author / Origin:
 
