@@ -378,6 +378,7 @@ usage () {
 	echo -e "        ${BOLD}cloneid${NOATT}    clones the UUID/PTUUID from the current disk to the image"
 	echo -e "        ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image"
 	echo -e "        ${BOLD}showdf${NOATT}     shows allocation of the image"
+	echo -e "        ${BOLD}resize${NOATT}     add 1G to the image"
 	echo -e ""
 	echo -e "    Options:"
 	echo -e ""
@@ -451,8 +452,7 @@ while getopts ":czdflL:i:s:" opt; do
 		f)  opt_force=1;;
 		l)  opt_log=1;;
 		L)  opt_log=1
-			LOG=${OPTARG}
-			;;
+			LOG=${OPTARG};;
 		i)  SDCARD=${OPTARG};;
 		s)  SIZE=${OPTARG}
 			BLOCKSIZE=1M ;;
@@ -599,6 +599,8 @@ EOF
 			do_showdf
 			do_umount
 			;;
+	resize)
+			do_resize;;
 	*)
 			error "Unknown command: ${opt_command}"
 			;;
