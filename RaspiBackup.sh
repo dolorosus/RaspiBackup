@@ -439,10 +439,6 @@ if [ $(id -u) -ne 0 ]; then
 	error "Please run as root. Try sudo."
 fi
 
-# Default size, can be overwritten by the -s option
-SIZE=$(blockdev --getsz $SDCARD)
-BLOCKSIZE=$(blockdev --getss $SDCARD)
-
 # Read the options from command line
 while getopts ":czdflL:i:s:" opt; do
 	case ${opt} in
@@ -461,6 +457,12 @@ while getopts ":czdflL:i:s:" opt; do
 	esac
 done
 shift $((OPTIND-1))
+#
+# setting defaults if -i or -s is ommitted
+#
+SDCARD=${SDCARD:-"/dev/mmcblk0"}
+SIZE=${SIZE:-$(blockdev --getsz $SDCARD)}
+BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)}
 
 # Read the sdimage path from command line
 IMAGE=${1}
