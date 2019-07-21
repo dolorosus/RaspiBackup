@@ -49,7 +49,7 @@
 SDCARD=/dev/mmcblk0
 #
 # Size of bootpartiotion in MB
-BOOTSIZE=44
+BOOTSIZE=250
 
 setup () {
 	#
@@ -101,7 +101,7 @@ error () {
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create () {
 
-BOOTSIZE=${BOOTSIZE:-44}
+BOOTSIZE=${BOOTSIZE:-250}
 
 
 	trace "Creating sparse "${IMAGE}", the apparent size of $SDCARD"
