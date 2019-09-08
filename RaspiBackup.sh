@@ -359,60 +359,60 @@ ctrl_c () {
 
 # Prints usage information
 usage () {
-	echo -e ""
-	echo -e "${MYNAME}"
-	echo -e ""
-	echo -e "Usage:"
-	echo -e ""
-	echo -e "    ${MYNAME} ${BOLD}start${NOATT} [-clzdf] [-L logfile] [-i sdcard] sdimage"
-	echo -e "    ${MYNAME} ${BOLD}mount${NOATT} [-c] sdimage [mountdir]"
-	echo -e "    ${MYNAME} ${BOLD}umount${NOATT} sdimage [mountdir]"
-	echo -e "    ${MYNAME} ${BOLD}gzip${NOATT} [-df] sdimage"
-	echo -e ""
-	echo -e "    Commands:"
-	echo -e ""
-	echo -e "        ${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'"
-	echo -e "        ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)"
-	echo -e "        ${BOLD}umount${NOATT}     unmounts the 'sdimage' from 'mountdir'"
-	echo -e "        ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz"
-	echo -e "        ${BOLD}cloneid${NOATT}    clones the UUID/PTUUID from the current disk to the image"
-	echo -e "        ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image"
-	echo -e "        ${BOLD}showdf${NOATT}     shows allocation of the image"
-	echo -e "        ${BOLD}resize${NOATT}     add 1G to the image"
-	echo -e ""
-	echo -e "    Options:"
-	echo -e ""
-	echo -e "        ${BOLD}-c${NOATT}         creates the SD Image if it does not exist"
-	echo -e "        ${BOLD}-l${NOATT}         writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log"
-	echo -e "        ${BOLD}-z${NOATT}         compresses the SD Image (after backup) to 'sdimage'.gz"
-	echo -e "        ${BOLD}-d${NOATT}         deletes the SD Image after successful compression"
-	echo -e "        ${BOLD}-f${NOATT}         forces overwrite of 'sdimage'.gz if it exists"
-	echo -e "        ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'"
-	echo -e "        ${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)"
-	echo -e "        ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)"
-	echo -e ""
-	echo -e "Examples:"
-	echo -e ""
-	echo -e "    ${MYNAME} start -c /path/to/rpi_backup.img"
-	echo -e "        starts backup to 'rpi_backup.img', creating it if it does not exist"
-	echo -e ""
-	echo -e "    ${MYNAME} start -c -s 8000 /path/to/rpi_backup.img"
-	echo -e "        starts backup to 'rpi_backup.img', creating it" 
-	echo -e "        with a size of 8000mb if it does not exist"
-	echo -e ""
-	echo -e "    ${MYNAME} start /path/to/\$(uname -n).img"
-	echo -e "        uses the RPi's hostname as the SD Image filename"
-	echo -e ""
-	echo -e "    ${MYNAME} start -cz /path/to/\$(uname -n)-\$(date +%Y-%m-%d).img"
-	echo -e "        uses the RPi's hostname and today's date as the SD Image filename,"
-	echo -e "        creating it if it does not exist, and compressing it after backup"
-	echo -e ""
-	echo -e "    ${MYNAME} mount /path/to/\$(uname -n).img /mnt/rpi_image"
-	echo -e "        mounts the RPi's SD Image in /mnt/rpi_image"
-	echo -e ""
-	echo -e "    ${MYNAME} umount /path/to/raspi-$(date +%Y-%m-%d).img"
-	echo -e "        unmounts the SD Image from default mountdir (/mnt/raspi-$(date +%Y-%m-%d).img/)"
-	echo -e ""
+cat<<EOF	
+	${MYNAME}
+	
+	Usage:
+	
+	    ${MYNAME} ${BOLD}start${NOATT} [-clzdf] [-L logfile] [-i sdcard] sdimage
+	    ${MYNAME} ${BOLD}mount${NOATT} [-c] sdimage [mountdir]
+	    ${MYNAME} ${BOLD}umount${NOATT} sdimage [mountdir]
+	    ${MYNAME} ${BOLD}gzip${NOATT} [-df] sdimage
+	
+	    Commands:
+	
+	        ${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'
+	        ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
+	        ${BOLD}umount${NOATT}     unmounts the 'sdimage' from 'mountdir'
+	        ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz
+	        ${BOLD}cloneid${NOATT}    clones the UUID/PTUUID from the current disk to the image
+	        ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
+	        ${BOLD}showdf${NOATT}     shows allocation of the image
+	        ${BOLD}resize${NOATT}     add 1G to the image
+	
+	    Options:
+	
+	        ${BOLD}-c${NOATT}         creates the SD Image if it does not exist
+	        ${BOLD}-l${NOATT}         writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
+	        ${BOLD}-z${NOATT}         compresses the SD Image (after backup) to 'sdimage'.gz
+	        ${BOLD}-d${NOATT}         deletes the SD Image after successful compression
+	        ${BOLD}-f${NOATT}         forces overwrite of 'sdimage'.gz if it exists
+	        ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
+	        ${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)
+	        ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)
+	
+	Examples:
+	
+	    ${MYNAME} start -c /path/to/rpi_backup.img
+	        starts backup to 'rpi_backup.img', creating it if it does not exist
+	
+	    ${MYNAME} start -c -s 8000 /path/to/rpi_backup.img
+	        starts backup to 'rpi_backup.img', creating it 
+	        with a size of 8000mb if it does not exist
+	
+	    ${MYNAME} start /path/to/\$(uname -n).img
+	        uses the RPi's hostname as the SD Image filename
+	
+	    ${MYNAME} start -cz /path/to/\$(uname -n)-\$(date +%Y-%m-%d).img
+	        uses the RPi's hostname and today's date as the SD Image filename,
+	        creating it if it does not exist, and compressing it after backup
+	
+	    ${MYNAME} mount /path/to/\$(uname -n).img /mnt/rpi_image
+	        mounts the RPi's SD Image in /mnt/rpi_image
+	
+	    ${MYNAME} umount /path/to/raspi-$(date +%Y-%m-%d).img
+	        unmounts the SD Image from default mountdir (/mnt/raspi-$(date +%Y-%m-%d).img/)
+EOF
 }
 
 setup
