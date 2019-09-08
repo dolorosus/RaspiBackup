@@ -6,7 +6,7 @@ Refer to https://www.raspberrypi.org/documentation/installation/installing-image
 
 ## Author / Origin:
 
-This script is a rewrite of a scipt written by user `jinx`.
+This script is inpired by user `jinx`.
 
 
 ## Usage
