@@ -318,14 +318,14 @@ do_umount () {
 # resize image
 #
 do_resize() {
-	do_umount() >/dev/null 2>&1
+	do_umount >/dev/null 2>&1
 	truncate --size=+1G "${IMAGE}"
 	losetup ${LOOPBACK} "${IMAGE}"
 	parted -s ${LOOPBACK} resizepart 2 100%
 	partx --add ${LOOPBACK}
 	e2fsck -f ${LOOPBACK}p2
 	resize2fs ${LOOPBACK}p2
-	do_umount()
+	do_umount
 }
 
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
