@@ -281,7 +281,7 @@ do_backup () {
 			--exclude='mnt/**' \
 			--exclude='lost+found/**' \
 			--exclude='var/swap ' \
-			--exclude='home/pi/.cache/**' \
+			--exclude='${HOME##/}/.cache/**' \
 			--exclude='var/cache/apt/archives/**" \
 			 / ${MOUNTDIR}/
 
