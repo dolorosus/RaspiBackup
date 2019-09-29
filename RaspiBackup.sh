@@ -155,13 +155,13 @@ change_bootenv () {
 		}
 		#echo "srcpartuuid[${p}] ${srcpartuuid[${p}]}"
 		dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
-			trace "Colud not find PARTUUID of ${LOOPBACK}p${p}"
+			trace "Could not find PARTUUID of ${LOOPBACK}p${p}"
 			editmanual=true
 			} 
 		#echo "dstpartuuid[${p}] ${dstpartuuid[${p}]}"
 		
 		grep -q "PARTUUID=${srcpartuuid[${p}]}" $fstab_tmp && {
-			trace "Changeing PARTUUID from ${srcpartuuid[${p}]} to ${dstpartuuid[${p}]} in $fstab_tmp"
+			trace "Changing PARTUUID from ${srcpartuuid[${p}]} to ${dstpartuuid[${p}]} in $fstab_tmp"
 			sed -i "s/PARTUUID=${srcpartuuid[${p}]}/PARTUUID=${dstpartuuid[${p}]}/" $fstab_tmp||{
 				trace "PARTUUID ${dstpartuuid[2]} has not been changed in  $fstab_tmp"
 				editmanual=true
@@ -180,11 +180,11 @@ change_bootenv () {
 		trace "correct fstab on destination manually."
 	else
 		cp $fstab_tmp ${MOUNTDIR}/etc/fstab
-		success "Changeing PARTUUIDs in fstab succsessful"
+		success "Changing PARTUUIDs in fstab successful"
 	fi 
 	
 	#
-	# Changeing /boot/cmdline.txt
+	# Changing /boot/cmdline.txt
 	#
 	editmanual=false
 	cmdline_tmp=/tmp/cmdline.txt
@@ -193,7 +193,7 @@ change_bootenv () {
 		editmanual=true
 		}
 	grep -q "PARTUUID=${srcpartuuid[2]}" $cmdline_tmp && {
-			trace "Changeing PARTUUID from ${srcpartuuid[2]} to ${dstpartuuid[2]} in $cmdline_tmp"
+			trace "Changing PARTUUID from ${srcpartuuid[2]} to ${dstpartuuid[2]} in $cmdline_tmp"
 			sed -i "s/PARTUUID=${srcpartuuid[2]}/PARTUUID=${dstpartuuid[2]}/" $cmdline_tmp||{
 				trace "PARTUUID ${dstpartuuid[2]} as not been changed in $cmdline_tmp"
 				editmanual=true
@@ -209,7 +209,7 @@ change_bootenv () {
 		trace "correct cmdline.txt on destination manually."
 	else
 		cp $cmdline_tmp ${MOUNTDIR}/boot/cmdline.txt
-		success "Changeing PARTUUID in cmdline.txt succsessful"
+		success "Changing PARTUUID in cmdline.txt successful"
 	fi 
 }
 
@@ -281,7 +281,7 @@ do_backup () {
 			--exclude='mnt/**' \
 			--exclude='lost+found/**' \
 			--exclude='var/swap ' \
-			--exclude='${HOME##/}/.cache/**' \
+			--exclude='home/*/.cache/**' \
 			--exclude='var/cache/apt/archives/**" \
 			 / ${MOUNTDIR}/
 
