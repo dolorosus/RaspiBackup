@@ -282,7 +282,7 @@ do_backup () {
 			--exclude='lost+found/**' \
 			--exclude='var/swap ' \
 			--exclude='${HOME##/}/.cache/**' \
-			--exclude='var/cache/apt/archives/**" \
+			--exclude='var/cache/apt/archives/**' \
 			 / ${MOUNTDIR}/
 
 	else
