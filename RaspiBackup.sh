@@ -123,8 +123,8 @@ change_bootenv () {
 	
 	for ((p = 1; p <= 2; p++))
 	do
-		srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}p${p}") || {
-			trace "Could not find PARTUUID of ${SDCARD}p${p}"
+		srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}${SUFFIX}${p}") || {
+			trace "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
 			editmanual=true
 		}
 		#echo "srcpartuuid[${p}] ${srcpartuuid[${p}]}"
