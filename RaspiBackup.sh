@@ -83,7 +83,7 @@ BOOTSIZE=${BOOTSIZE:-250}
 		trace "Attaching "${IMAGE}" to ${LOOPBACK}"
 		losetup ${LOOPBACK} "${IMAGE}"
 	else
-		error "${IMAGE} was not created or has zero size"
+		error "${IMAGE} has not been created or has zero size"
 	fi
 
 	trace "Creating partitions on ${LOOPBACK}"
@@ -125,13 +125,15 @@ change_bootenv () {
 			trace "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
 			editmanual=true
 		}
-		#echo "srcpartuuid[${p}] ${srcpartuuid[${p}]}"
+
 		dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
 			trace "Could not find PARTUUID of ${LOOPBACK}p${p}"
 			editmanual=true
 			} 
-		#echo "dstpartuuid[${p}] ${dstpartuuid[${p}]}"
-		
+		#
+		# Let' look if our partuuid for src is in fstab, if true then change the PARTUUID to
+		#  the PARTUUID of the backup
+		#
 		grep -q "PARTUUID=${srcpartuuid[${p}]}" $fstab_tmp && {
 			trace "Changeing PARTUUID from ${srcpartuuid[${p}]} to ${dstpartuuid[${p}]} in $fstab_tmp"
 			sed -i "s/PARTUUID=${srcpartuuid[${p}]}/PARTUUID=${dstpartuuid[${p}]}/" $fstab_tmp||{
@@ -145,18 +147,20 @@ change_bootenv () {
 		}
 
 	done
-	
+	#
+	# Something went wrong automatically changing wasn't possible
+	# Now the Uuser has a second chance 
 	if ${editmanual}
 	then
 		trace "fstab cannot be changed automatically."
 		trace "correct fstab on destination manually."
 	else
 		cp $fstab_tmp ${MOUNTDIR}/etc/fstab
-		success "Changeing PARTUUIDs in fstab successful"
+		success "Changing PARTUUIDs in fstab successful"
 	fi 
 	
 	#
-	# Changeing /boot/cmdline.txt
+	# Changing /boot/cmdline.txt
 	#
 	editmanual=false
 	cmdline_tmp=/tmp/cmdline.txt
@@ -181,31 +185,8 @@ change_bootenv () {
 		trace "correct cmdline.txt on destination manually."
 	else
 		cp $cmdline_tmp ${MOUNTDIR}/boot/cmdline.txt
-		success "Changeing PARTUUID in cmdline.txt successful"
+		success "Changing PARTUUID in cmdline.txt successful"
 	fi 
-}
-
-do_cloneid () {
-	# Check if do_create already attached the SD Image
-	if [ $(losetup -f) = ${LOOPBACK} ]; then
-		trace "Attaching ${IMAGE} to ${LOOPBACK}"
-		losetup ${LOOPBACK} "${IMAGE}"
-		partx --add ${LOOPBACK}
-	fi
-	clone
-	partx --delete ${LOOPBACK}
-	losetup -d ${LOOPBACK}
-}
-
-clone () {
-	# cloning UUID and PARTUUID
-	UUID=$(blkid -s UUID -o value ${SDCARD}${SUFFIX}2)
-	PTUUID=$(blkid -s PTUUID -o value ${SDCARD})
-	e2fsck -f -y ${LOOPBACK}p2
-	echo y|tune2fs ${LOOPBACK}p2 -U $UUID
-	printf 'p\nx\ni\n%s\nr\np\nw\n' 0x${PTUUID}|fdisk "${LOOPBACK}"
-	sync
-	
 }
 
 # Mounts the ${IMAGE} to ${LOOPBACK} (if needed) and ${MOUNTDIR}
@@ -349,7 +330,6 @@ cat<<EOF
 	        ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
 	        ${BOLD}umount${NOATT}     unmounts the 'sdimage' from 'mountdir'
 	        ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz
-	        ${BOLD}cloneid${NOATT}    clones the UUID/PTUUID from the current disk to the image
 	        ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
 	        ${BOLD}showdf${NOATT}     shows allocation of the image
 	        ${BOLD}resize${NOATT}     add 1G to the image
@@ -394,7 +374,7 @@ setup
 # Read the command from command line
 case "${1}" in
 	
-	start|mount|umount|gzip|cloneid|chbootenv|showdf) opt_command=${1}
+	start|mount|umount|gzip|chbootenv|showdf) opt_command=${1}
 	;;
 		
 		
@@ -554,23 +534,7 @@ case ${opt_command} in
 	gzip)
 			do_compress
 			;;
-	cloneid)
-			cat<<EOF
-	${YELLOW}
-	While cloneid still works, you may consider to adapt /boot/cmdline.txt and /etc/fstab.
-	${MYNAME} will assist you by using the ${BOLD}chbootenv${NOATT}${YELLOW} option.
 
-EOF
-			while true
-			do
-				read -p "Do you really wish to use cloneid? (y/n)" yn
-				case $yn in
-					[Yy]* ) do_cloneid; break;;
-					[Nn]* ) exit;;
-					* ) echo "Please answer yes or no.";;
-				esac
-			done
-			;;
 	chbootenv)
 			do_mount
 			change_bootenv
