@@ -14,8 +14,8 @@
 #  applications or just reboot the system. 
 #
 #
-# Hisotry removed
-# no longer neede, because this script moved to github
+# History removed
+# no longer needed, because this script was moved to github
 #        
 #
 #
@@ -94,8 +94,8 @@ BOOTSIZE=${BOOTSIZE:-250}
 	parted -s ${LOOPBACK} mkpart primary ext4 ${BOOTSIZE}MiB 100%
 	trace "Formatting partitions"
 	partx --add ${LOOPBACK}
-	mkfs.vfat -n BOOT -F32 ${LOOPBACK}${SUFFIX}1
-	mkfs.ext4 ${LOOPBACK}${SUFFIX}2
+	mkfs.vfat -n BOOT -F32 ${LOOPBACK}p1
+	mkfs.ext4 ${LOOPBACK}p2
 
 }
 
@@ -128,8 +128,8 @@ change_bootenv () {
 			editmanual=true
 		}
 		#echo "srcpartuuid[${p}] ${srcpartuuid[${p}]}"
-		dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}${SUFFIX}${p}") || {
-			trace "Colud not find PARTUUID of ${LOOPBACK}${SUFFIX}${p}"
+		dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
+			trace "Colud not find PARTUUID of ${LOOPBACK}p${p}"
 			editmanual=true
 			} 
 		#echo "dstpartuuid[${p}] ${dstpartuuid[${p}]}"
@@ -163,7 +163,7 @@ change_bootenv () {
 	editmanual=false
 	cmdline_tmp=/tmp/cmdline.txt
 	cp /boot/cmdline.txt $cmdline_tmp || {
-		trace "could not copy ${LOOPBACK}${SUFFIX}1/cmdline.txt to $cmdline_tmp"
+		trace "could not copy ${LOOPBACK}p1/cmdline.txt to $cmdline_tmp"
 		editmanual=true
 		}
 	grep -q "PARTUUID=${srcpartuuid[2]}" $cmdline_tmp && {
@@ -203,8 +203,8 @@ clone () {
 	# cloning UUID and PARTUUID
 	UUID=$(blkid -s UUID -o value ${SDCARD}p2)
 	PTUUID=$(blkid -s PTUUID -o value ${SDCARD})
-	e2fsck -f -y ${LOOPBACK}${SUFFIX}2
-	echo y|tune2fs ${LOOPBACK}${SUFFIX}2 -U $UUID
+	e2fsck -f -y ${LOOPBACK}p2
+	echo y|tune2fs ${LOOPBACK}p2 -U $UUID
 	printf 'p\nx\ni\n%s\nr\np\nw\n' 0x${PTUUID}|fdisk "${LOOPBACK}"
 	sync
 	
@@ -219,13 +219,13 @@ do_mount () {
 		partx --add ${LOOPBACK}
 	fi
 
-	trace "Mounting ${LOOPBACK}${SUFFIX}1 and ${LOOPBACK}${SUFFIX}2 to ${MOUNTDIR}"
+	trace "Mounting ${LOOPBACK}p1 and ${LOOPBACK}p2 to ${MOUNTDIR}"
 	if [ ! -n "${opt_mountdir}" ]; then
 		mkdir ${MOUNTDIR}
 	fi
-	mount ${LOOPBACK}${SUFFIX}2 ${MOUNTDIR}
+	mount ${LOOPBACK}p2 ${MOUNTDIR}
 	mkdir -p ${MOUNTDIR}/boot
-	mount ${LOOPBACK}${SUFFIX}1 ${MOUNTDIR}/boot
+	mount ${LOOPBACK}p1 ${MOUNTDIR}/boot
 }
 
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
@@ -254,8 +254,9 @@ do_backup () {
 			--exclude='mnt/**' \
 			--exclude='lost+found/**' \
 			--exclude='var/swap ' \
-			--exclude='${HOME##/}/.cache/**' \
+			--exclude='home/*/.cache/**' \
 			--exclude='var/cache/apt/archives/**' \
+			--delete-excluded \
 			 / ${MOUNTDIR}/
 
 	else
@@ -266,7 +267,7 @@ do_backup () {
 do_showdf () {
 
 	echo -n "${NOATT}"
-	df -m ${LOOPBACK}${SUFFIX}1 ${LOOPBACK}${SUFFIX}2
+	df -m ${LOOPBACK}p1 ${LOOPBACK}p2
 	echo ""
 }
 
@@ -275,7 +276,7 @@ do_umount () {
 	trace "Flushing to disk"
 	sync; sync
 
-	trace "Unmounting ${LOOPBACK}${SUFFIX}1 and ${LOOPBACK}${SUFFIX}2 from ${MOUNTDIR}"
+	trace "Unmounting ${LOOPBACK}p1 and ${LOOPBACK}p2 from ${MOUNTDIR}"
 	umount ${MOUNTDIR}/boot
 	umount ${MOUNTDIR}
 	if [ ! -n "${opt_mountdir}" ]; then
@@ -293,14 +294,14 @@ do_umount () {
 #
 # resize image
 #
-do_resize() {
+do_resize () {
 	do_umount >/dev/null 2>&1
 	truncate --size=+1G "${IMAGE}"
 	losetup ${LOOPBACK} "${IMAGE}"
 	parted -s ${LOOPBACK} resizepart 2 100%
 	partx --add ${LOOPBACK}
-	e2fsck -f ${LOOPBACK}${SUFFIX}2
-	resize2fs ${LOOPBACK}${SUFFIX}2
+	e2fsck -f ${LOOPBACK}p2
+	resize2fs ${LOOPBACK}p2
 	do_umount
 }
 
@@ -440,9 +441,9 @@ SDCARD=${SDCARD:-"/dev/mmcblk0"}
 SIZE=${SIZE:-$(blockdev --getsz $SDCARD)}
 BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)}
 case "${SDCARD}" in
-	"/dev/mmc*") SUFFIX="p";;
-	"/dev/sd*")  SUFFIX="";;
-	"/dev/disk/by-id/*") SUFFIX="-part";;
+	"/dev/mmc"*) SUFFIX="p";;
+	"/dev/sd"*)  SUFFIX="";;
+	"/dev/disk/by-id/"*) SUFFIX="-part";;
 	*) SUFFIX="p";;
 esac
 
@@ -482,7 +483,7 @@ if [ ${opt_command} = umount ]; then
 		error "No /dev/loop<X> attached to ${IMAGE}"
 	fi
 elif [ ! -z ${LOOPBACK} ]; then
-	error "${IMAGE} already attached to ${LOOPBACK} mounted on $(grep ${LOOPBACK}${SUFFIX}2 /etc/mtab | cut -d ' ' -f 2)/"
+	error "${IMAGE} already attached to ${LOOPBACK} mounted on $(grep ${LOOPBACK}p2 /etc/mtab | cut -d ' ' -f 2)/"
 else
 	LOOPBACK=$(losetup -f)
 fi
