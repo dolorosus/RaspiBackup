@@ -181,7 +181,7 @@ change_bootenv () {
 		trace "correct cmdline.txt on destination manually."
 	else
 		cp $cmdline_tmp ${MOUNTDIR}/boot/cmdline.txt
-		success "Changeing PARTUUID in cmdline.txt succsessful"
+		success "Changeing PARTUUID in cmdline.txt successful"
 	fi 
 }
 
