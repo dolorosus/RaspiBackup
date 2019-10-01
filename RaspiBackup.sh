@@ -14,12 +14,12 @@
 #  applications or just reboot the system. 
 #
 #
+# History removed
+# no longer needed, because this script moved to github
 #        
 #
 #
 # Defaults
-SDCARD=/dev/mmcblk0
-#
 # Size of bootpartiotion in MB
 BOOTSIZE=250
 
@@ -121,19 +121,19 @@ change_bootenv () {
 	
 	for ((p = 1; p <= 2; p++))
 	do
-		srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}p${p}") || {
-			trace "Could not find PARTUUID of ${SDCARD}p${p}"
+		srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}${SUFFIX}${p}") || {
+			trace "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
 			editmanual=true
 		}
 		#echo "srcpartuuid[${p}] ${srcpartuuid[${p}]}"
 		dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
-			trace "Could not find PARTUUID of ${LOOPBACK}p${p}"
+			trace "Colud not find PARTUUID of ${LOOPBACK}p${p}"
 			editmanual=true
 			} 
 		#echo "dstpartuuid[${p}] ${dstpartuuid[${p}]}"
 		
 		grep -q "PARTUUID=${srcpartuuid[${p}]}" $fstab_tmp && {
-			trace "changing PARTUUID from ${srcpartuuid[${p}]} to ${dstpartuuid[${p}]} in $fstab_tmp"
+			trace "Changeing PARTUUID from ${srcpartuuid[${p}]} to ${dstpartuuid[${p}]} in $fstab_tmp"
 			sed -i "s/PARTUUID=${srcpartuuid[${p}]}/PARTUUID=${dstpartuuid[${p}]}/" $fstab_tmp||{
 				trace "PARTUUID ${dstpartuuid[2]} has not been changed in  $fstab_tmp"
 				editmanual=true
@@ -152,11 +152,11 @@ change_bootenv () {
 		trace "correct fstab on destination manually."
 	else
 		cp $fstab_tmp ${MOUNTDIR}/etc/fstab
-		success "changing PARTUUIDs in fstab successful"
+		success "Changeing PARTUUIDs in fstab succsessful"
 	fi 
 	
 	#
-	# changing /boot/cmdline.txt
+	# Changeing /boot/cmdline.txt
 	#
 	editmanual=false
 	cmdline_tmp=/tmp/cmdline.txt
@@ -165,7 +165,7 @@ change_bootenv () {
 		editmanual=true
 		}
 	grep -q "PARTUUID=${srcpartuuid[2]}" $cmdline_tmp && {
-			trace "changing PARTUUID from ${srcpartuuid[2]} to ${dstpartuuid[2]} in $cmdline_tmp"
+			trace "Changeing PARTUUID from ${srcpartuuid[2]} to ${dstpartuuid[2]} in $cmdline_tmp"
 			sed -i "s/PARTUUID=${srcpartuuid[2]}/PARTUUID=${dstpartuuid[2]}/" $cmdline_tmp||{
 				trace "PARTUUID ${dstpartuuid[2]} as not been changed in $cmdline_tmp"
 				editmanual=true
@@ -181,10 +181,9 @@ change_bootenv () {
 		trace "correct cmdline.txt on destination manually."
 	else
 		cp $cmdline_tmp ${MOUNTDIR}/boot/cmdline.txt
-		success "changing PARTUUID in cmdline.txt successful"
+		success "Changeing PARTUUID in cmdline.txt succsessful"
 	fi 
 }
-
 
 do_cloneid () {
 	# Check if do_create already attached the SD Image
@@ -253,8 +252,9 @@ do_backup () {
 			--exclude='mnt/**' \
 			--exclude='lost+found/**' \
 			--exclude='var/swap ' \
-			--exclude='${HOME##/}/.cache/**' \
+			--exclude='home/*/.cache/**' \
 			--exclude='var/cache/apt/archives/**' \
+			--delete-excluded \
 			 / ${MOUNTDIR}/
 
 	else
@@ -287,10 +287,12 @@ do_umount () {
 }
 
 
+
+
 #
 # resize image
 #
-do_resize() {
+do_resize () {
 	do_umount >/dev/null 2>&1
 	truncate --size=+1G "${IMAGE}"
 	losetup ${LOOPBACK} "${IMAGE}"
@@ -436,6 +438,12 @@ shift $((OPTIND-1))
 SDCARD=${SDCARD:-"/dev/mmcblk0"}
 SIZE=${SIZE:-$(blockdev --getsz $SDCARD)}
 BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)}
+case "${SDCARD}" in
+	"/dev/mmc"*) SUFFIX="p";;
+	"/dev/sd"*)  SUFFIX="";;
+	"/dev/disk/by-id/"*) SUFFIX="-part";;
+	*) SUFFIX="p";;
+esac
 
 # Read the sdimage path from command line
 IMAGE=${1}
