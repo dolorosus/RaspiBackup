@@ -14,34 +14,8 @@
 #  applications or just reboot the system. 
 #
 #
-# 2019-05-30 Dolorosus
-#        Fix: typo for showdf command fixed
-#        Fix: Some cosmetics for better readable output 
-#
-# 2019-05-12 Dolorosus
-#        New: Function chbootenv. This function tries to change the PARTUUIDS 
-#             of /boot and / in fstab according to PARTUUID of the image.
-#
-#        Fix: Removed dangerous copying of source partition table to the image
-#             and replaced it with proper destination partition setup.
-# 
-# 2019-04-25 Dolorosus
-#        Fix: Proper quoting of imagename. Now blanks in the imagename should be no longer 
-#             a problem.
-#
-# 2019-03-19 Dolorosus
-#        Fix: Define colors only if connected to a terminal.
-#             Thus output to file is no more cluttered.
-#
-# 2019-03-18 Dolorosus: 
-#        New: Exclusion of files below /tmp,/proc,/run,/sys and 
-#             also the swapfile /var/swap will be excluded from backup.
-#        New: Bumping version to 1.1
-#        
-# 2019-03-17 Dolorosus: 
-#        New: -s parameter to create an image of a defined size.
-#        New: Funtion cloneid to clone te UUID and the PTID from 
-#             the SDCARD to the image.
+# Hisotry removed
+# no longer neede, because this script moved to github
 #        
 #
 #
@@ -149,8 +123,8 @@ change_bootenv () {
 	
 	for ((p = 1; p <= 2; p++))
 	do
-		srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}p${p}") || {
-			trace "Could not find PARTUUID of ${SDCARD}p${p}"
+		srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}${SUFFIX}${p}") || {
+			trace "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
 			editmanual=true
 		}
 		#echo "srcpartuuid[${p}] ${srcpartuuid[${p}]}"
@@ -212,7 +186,6 @@ change_bootenv () {
 		success "Changeing PARTUUID in cmdline.txt succsessful"
 	fi 
 }
-
 
 do_cloneid () {
 	# Check if do_create already attached the SD Image
@@ -281,8 +254,9 @@ do_backup () {
 			--exclude='mnt/**' \
 			--exclude='lost+found/**' \
 			--exclude='var/swap ' \
-			--exclude='${HOME##/}/.cache/**' \
-			--exclude='var/cache/apt/archives/**" \
+			--exclude='home/*/.cache/**' \
+			--exclude='var/cache/apt/archives/**' \
+			--delete-excluded \
 			 / ${MOUNTDIR}/
 
 	else
@@ -315,10 +289,12 @@ do_umount () {
 }
 
 
+
+
 #
 # resize image
 #
-do_resize() {
+do_resize () {
 	do_umount >/dev/null 2>&1
 	truncate --size=+1G "${IMAGE}"
 	losetup ${LOOPBACK} "${IMAGE}"
@@ -464,6 +440,12 @@ shift $((OPTIND-1))
 SDCARD=${SDCARD:-"/dev/mmcblk0"}
 SIZE=${SIZE:-$(blockdev --getsz $SDCARD)}
 BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)}
+case "${SDCARD}" in
+	"/dev/mmc"*) SUFFIX="p";;
+	"/dev/sd"*)  SUFFIX="";;
+	"/dev/disk/by-id/"*) SUFFIX="-part";;
+	*) SUFFIX="p";;
+esac
 
 # Read the sdimage path from command line
 IMAGE=${1}
