@@ -127,7 +127,7 @@ change_bootenv () {
 		}
 		#echo "srcpartuuid[${p}] ${srcpartuuid[${p}]}"
 		dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
-			trace "Colud not find PARTUUID of ${LOOPBACK}p${p}"
+			trace "Could not find PARTUUID of ${LOOPBACK}p${p}"
 			editmanual=true
 			} 
 		#echo "dstpartuuid[${p}] ${dstpartuuid[${p}]}"
@@ -152,7 +152,7 @@ change_bootenv () {
 		trace "correct fstab on destination manually."
 	else
 		cp $fstab_tmp ${MOUNTDIR}/etc/fstab
-		success "Changeing PARTUUIDs in fstab succsessful"
+		success "Changeing PARTUUIDs in fstab successful"
 	fi 
 	
 	#
@@ -167,7 +167,7 @@ change_bootenv () {
 	grep -q "PARTUUID=${srcpartuuid[2]}" $cmdline_tmp && {
 			trace "Changeing PARTUUID from ${srcpartuuid[2]} to ${dstpartuuid[2]} in $cmdline_tmp"
 			sed -i "s/PARTUUID=${srcpartuuid[2]}/PARTUUID=${dstpartuuid[2]}/" $cmdline_tmp||{
-				trace "PARTUUID ${dstpartuuid[2]} as not been changed in $cmdline_tmp"
+				trace "PARTUUID ${dstpartuuid[2]} has not been changed in $cmdline_tmp"
 				editmanual=true
 			}
 		}||{
@@ -254,7 +254,6 @@ do_backup () {
 			--exclude='var/swap ' \
 			--exclude='home/*/.cache/**' \
 			--exclude='var/cache/apt/archives/**' \
-			--delete-excluded \
 			 / ${MOUNTDIR}/
 
 	else
