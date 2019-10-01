@@ -29,6 +29,7 @@ E.g.:
 ### Options:
 
 * -c creates the SD Image if it does not exist
+* -i defines a different source device path instead of the default /dev/mmcblk0
 * -l writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
 * -z compresses the SD Image (after backup) to 'sdimage'.gz
 * -d deletes the SD Image after successful compression
