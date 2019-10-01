@@ -14,8 +14,8 @@
 #  applications or just reboot the system. 
 #
 #
-# Hisotry removed
-# no longer neede, because this script moved to github
+# History removed
+# no longer needed, because this script was moved to github
 #        
 #
 #
