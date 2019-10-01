@@ -152,7 +152,7 @@ change_bootenv () {
 		trace "correct fstab on destination manually."
 	else
 		cp $fstab_tmp ${MOUNTDIR}/etc/fstab
-		success "changing PARTUUIDs in fstab succsessful"
+		success "changing PARTUUIDs in fstab successful"
 	fi 
 	
 	#
@@ -181,7 +181,7 @@ change_bootenv () {
 		trace "correct cmdline.txt on destination manually."
 	else
 		cp $cmdline_tmp ${MOUNTDIR}/boot/cmdline.txt
-		success "changing PARTUUID in cmdline.txt succsessful"
+		success "changing PARTUUID in cmdline.txt successful"
 	fi 
 }
 
