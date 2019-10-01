@@ -199,10 +199,10 @@ do_cloneid () {
 
 clone () {
 	# cloning UUID and PARTUUID
-	UUID=$(blkid -s UUID -o value ${SDCARD}p2)
+	UUID=$(blkid -s UUID -o value ${SDCARD}${SUFFIX}2)
 	PTUUID=$(blkid -s PTUUID -o value ${SDCARD})
-	e2fsck -f -y ${LOOPBACK}p2
-	echo y|tune2fs ${LOOPBACK}p2 -U $UUID
+	e2fsck -f -y ${LOOPBACK}${SUFFIX}2
+	echo y|tune2fs ${LOOPBACK}${SUFFIX}2 -U $UUID
 	printf 'p\nx\ni\n%s\nr\np\nw\n' 0x${PTUUID}|fdisk "${LOOPBACK}"
 	sync
 	
