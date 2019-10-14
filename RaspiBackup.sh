@@ -280,7 +280,6 @@ do_resize () {
 	partx --add ${LOOPBACK}
 	e2fsck -f ${LOOPBACK}p2
 	resize2fs ${LOOPBACK}p2
-	do_umount
 }
 
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
@@ -374,7 +373,7 @@ setup
 # Read the command from command line
 case "${1}" in
 	
-	start|mount|umount|gzip|chbootenv|showdf) opt_command=${1}
+	start|mount|umount|gzip|chbootenv|showdf|resize) opt_command=${1}
 	;;
 		
 		
