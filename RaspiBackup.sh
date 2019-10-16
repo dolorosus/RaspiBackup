@@ -373,9 +373,7 @@ esac
 shift 1
 
 # Make sure we have root rights
-if [ $(id -u) -ne 0 ]; then
-    error "Please run as root. Try sudo."
-fi
+[ $(id -u) -ne 0 ] &&  error "Please run as root. Try sudo."
 
 # Read the options from command line
 while getopts ":czdflL:i:s:" opt; do
@@ -440,7 +438,6 @@ elif [ ! -z ${LOOPBACK} ]; then
 else
     LOOPBACK=$(losetup -f)
 fi
-
 
 # Read the optional mountdir from command line
 MOUNTDIR=${2}
