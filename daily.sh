@@ -55,7 +55,7 @@ setup () {
 	export destvol="/media/pi/usbBack"
 	export destpath="${destvol}/BACKUPS" 
 	export snappath="${destvol}/.snapshots/BACKUPS"
-	export destpatt="MyRaspi-1*_[0-9]*.img"
+	export destpatt="MyRaspi-2*_[0-9]*.img"
 	export bcknewname="MyRaspi-${stamp}.img"
 	export tmppre="\#"
 
