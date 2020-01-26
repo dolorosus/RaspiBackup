@@ -262,13 +262,25 @@ do_umount () {
 # resize image
 #
 do_resize () {
+	local SIZE=${1:-1000}
+	
     do_umount >/dev/null 2>&1
-    truncate --size=+1G "${IMAGE}"
+	
+	trace "increasing size of ${IMAGE} by ${SIZE}M"
+    truncate --size=+${SIZE}M "${IMAGE}"
+	
     losetup ${LOOPBACK} "${IMAGE}"
+	trace "resize partition 2 of ${IMAGE}"
     parted -s ${LOOPBACK} resizepart 2 100%
     partx --add ${LOOPBACK}
+	
+	trace "expanding filesystem"
     e2fsck -f ${LOOPBACK}p2
     resize2fs ${LOOPBACK}p2
+	   
+	trace "Detaching ${IMAGE} from ${LOOPBACK}"
+    partx --delete ${LOOPBACK}
+    losetup -d ${LOOPBACK}
 }
 
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
@@ -312,11 +324,10 @@ cat<<EOF
     
             ${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'
             ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
-            ${BOLD}umount${NOATT}     unmounts the 'sdimage' from 'mountdir'
-            ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz
+            ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz (only useful for archiving the image)
             ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
             ${BOLD}showdf${NOATT}     shows allocation of the image
-            ${BOLD}resize${NOATT}     add 1G to the image
+            ${BOLD}resize${NOATT}     expand the image
     
         Options:
     
@@ -341,24 +352,40 @@ cat<<EOF
         ${MYNAME} start /path/to/\$(uname -n).img
             uses the RPi's hostname as the SD Image filename
     
-        ${MYNAME} start -cz /path/to/\$(uname -n)-\$(date +%Y-%m-%d).img
-            uses the RPi's hostname and today's date as the SD Image filename,
-            creating it if it does not exist, and compressing it after backup
-    
+	    ${MYNAME} resize  /path/to/rpi_backup.img
+            expand rpi_backup.img by 1000M
+			
         ${MYNAME} mount /path/to/\$(uname -n).img /mnt/rpi_image
             mounts the RPi's SD Image in /mnt/rpi_image
-    
-        ${MYNAME} umount /path/to/raspi-$(date +%Y-%m-%d).img
-            unmounts the SD Image from default mountdir (/mnt/raspi-$(date +%Y-%m-%d).img/)
+
 EOF
 }
 
+#####################################################################################################
+# Main
+#####################################################################################################
+
 setup
+
+# Make sure we have root rights
+if [ $(id -u) -ne 0 ]; then
+    error "Please run as root. Try sudo."
+fi
+
+#
+# Check for dependencies
+#
+for c in dd losetup parted sfdisk partx mkfs.vfat mkfs.ext4 mountpoint rsync
+do
+    command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
+done
+
+
 
 # Read the command from command line
 case "${1}" in
     
-    start|mount|umount|gzip|chbootenv|showdf) opt_command=${1}
+    start|mount|umount|gzip|chbootenv|showdf|resize) opt_command=${1}
     ;;
         
         
@@ -372,10 +399,7 @@ case "${1}" in
 esac
 shift 1
 
-# Make sure we have root rights
-if [ $(id -u) -ne 0 ]; then
-    error "Please run as root. Try sudo."
-fi
+
 
 # Read the options from command line
 while getopts ":czdflL:i:s:" opt; do
@@ -408,30 +432,41 @@ case "${SDCARD}" in
     *) SUFFIX="p";;
 esac
 
+# Preflight checks
+#
 # Read the sdimage path from command line
+#   and check for existance
+#
 IMAGE=${1}
 [ -z "${IMAGE}" ] && error "No sdimage specified"
 
 # Check if sdimage exists
 if [ ${opt_command} = umount ] || [ ${opt_command} = gzip ]; then
-    [ ! -f "${IMAGE}" ] && error "${IMAGE} does not exist"
+    [ -f "${IMAGE}" ] || error "${IMAGE} does not exist"
 else
     if [ ! -f "${IMAGE}" ] && [ ! -n "${opt_create}" ]; then
         error "${IMAGE} does not exist\nUse -c to allow creation"
     fi
 fi
 
-# Check if we should compress and sdimage.gz exists
+#
+# Checks for compressing the image
+#
 if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
+    for c in pv gzip
+	do
+        command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
+    done
+	
     if [ -s "${IMAGE}".gz ] && [ ! -n "${opt_force}" ]; then
         error "${IMAGE}.gz already exists\nUse -f to force overwriting"
     fi
 fi
 
-# Define default rsync logfile if not defined
-[ -z ${LOG} ] && LOG="${IMAGE}-$(date +%Y%m%d%H%M%S).log"
 
+#
 # Identify which loopback device to use
+#
 LOOPBACK=$(losetup -j "${IMAGE}" | grep -o ^[^:]*)
 if [ ${opt_command} = umount ]; then
     [ -z ${LOOPBACK} ] && error "No /dev/loop<X> attached to ${IMAGE}"
@@ -441,8 +476,9 @@ else
     LOOPBACK=$(losetup -f)
 fi
 
-
+#
 # Read the optional mountdir from command line
+#
 MOUNTDIR=${2}
 if [ -z ${MOUNTDIR} ]; then
     MOUNTDIR=/mnt/$(basename "${IMAGE}")/
@@ -453,25 +489,23 @@ fi
 
 # Check if default mount point exists
 if [ ${opt_command} = umount ]; then
-    [ ! -d ${MOUNTDIR} ] || error "Default mount point ${MOUNTDIR} does not exist"
+    [  -d ${MOUNTDIR} ] || error "Default mount point ${MOUNTDIR} does not exist"
 else
     if [ ! -n "${opt_mountdir}" ] && [ -d ${MOUNTDIR} ]; then
         error "Default mount point ${MOUNTDIR} already exists"
     fi
 fi
 
+#
+#  All preflight checks done
+#
+
+#####################################################################################################
+#
 # Trap keyboard interrupt (ctrl-c)
+
 trap ctrl_c SIGINT SIGTERM
 
-# Check for dependencies
-for c in dd losetup parted sfdisk partx mkfs.vfat mkfs.ext4 mountpoint rsync; do
-    command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
-done
-if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
-    for c in pv gzip; do
-        command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
-    done
-fi
 
 # Do the requested functionality
 case ${opt_command} in
@@ -500,9 +534,9 @@ case ${opt_command} in
             do_mount
             success "SD Image has been mounted and can be accessed at:\n    ${MOUNTDIR}"
             ;;
-    umount)
-            do_umount
-            ;;
+	umount)
+			do_umount
+			;;
     gzip)
             do_compress
             ;;
