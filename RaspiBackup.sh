@@ -267,7 +267,7 @@ do_resize () {
     do_umount >/dev/null 2>&1
 	
 	trace "increasing size of ${IMAGE} by ${SIZE}M"
-    truncate --size=+${SIZE}M "${IMAGE}"
+    truncate --size=+${SIZE}M "${IMAGE}" || error "Error adding ${SIZE}M to ${IMAGE}"
 	
     losetup ${LOOPBACK} "${IMAGE}"
 	trace "resize partition 2 of ${IMAGE}"
@@ -339,6 +339,7 @@ cat<<EOF
             ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
             ${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)
             ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)
+	        ${BOLD}-r Mb${NOATT}      the image will be resized by this value 		
     
     Examples:
     
@@ -354,6 +355,9 @@ cat<<EOF
     
 	    ${MYNAME} resize  /path/to/rpi_backup.img
             expand rpi_backup.img by 1000M
+			
+		${MYNAME} resize -s 2000 /path/to/rpi_backup.img
+            expand rpi_backup.img by 2000M
 			
         ${MYNAME} mount /path/to/\$(uname -n).img /mnt/rpi_image
             mounts the RPi's SD Image in /mnt/rpi_image
@@ -402,7 +406,7 @@ shift 1
 
 
 # Read the options from command line
-while getopts ":czdflL:i:s:" opt; do
+while getopts ":czdflL:i:r:s:" opt; do
     case ${opt} in
         c)  opt_create=1;;
         z)  opt_compress=1;;
@@ -412,6 +416,7 @@ while getopts ":czdflL:i:s:" opt; do
         L)  opt_log=1
             LOG=${OPTARG};;
         i)  SDCARD=${OPTARG};;
+		r)  RSIZE=${OPTARG};;
         s)  SIZE=${OPTARG}
             BLOCKSIZE=1M ;;
         \?) error "Invalid option: -${OPTARG}\nSee '${MYNAME} --help' for usage";;
@@ -425,6 +430,8 @@ shift $((OPTIND-1))
 SDCARD=${SDCARD:-"/dev/mmcblk0"}
 SIZE=${SIZE:-$(blockdev --getsz $SDCARD)}
 BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)}
+RSIZE=${RSIZE:-1000}
+
 case "${SDCARD}" in
     "/dev/mmc"*) SUFFIX="p";;
     "/dev/sd"*)  SUFFIX="";;
@@ -552,7 +559,7 @@ case ${opt_command} in
             do_umount
             ;;
     resize)
-            do_resize;;
+            do_resize $RSIZE;;
     *)
             error "Unknown command: ${opt_command}"
             ;;
