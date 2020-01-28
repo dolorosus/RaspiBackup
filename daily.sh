@@ -204,7 +204,7 @@ bckfile="$(ls -1 ${destpath}/${destpatt})"
 ${snapscript}  ${destpath} ${destvol}/.snapshots/BACKUPS ${mark} ${versions}
 
 #
-# finally do the backup
+# finally... ...the backup!
 #
 do_backup
 
