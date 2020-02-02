@@ -324,6 +324,7 @@ cat<<EOF
     
             ${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'
             ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
+			${BOLD}umount${NOATT}     unmounts the 'sdimage'
             ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz (only useful for archiving the image)
             ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
             ${BOLD}showdf${NOATT}     shows allocation of the image
