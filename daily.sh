@@ -19,6 +19,7 @@
 #	2019-04-30	initial commit by Dolorosus
 #
 #
+declare -A PROGS
 
 setup () {
 	#
@@ -54,7 +55,7 @@ setup () {
 	export destvol="/media/pi/usbBack"
 	export destpath="${destvol}/BACKUPS" 
 	export snappath="${destvol}/.snapshots/BACKUPS"
-	export destpatt="MyRaspi-1*_[0-9]*.img"
+	export destpatt="MyRaspi-2*_[0-9]*.img"
 	export bcknewname="MyRaspi-${stamp}.img"
 	export tmppre="\#"
 
@@ -62,6 +63,17 @@ setup () {
 	export snapscript="/home/pi/scripts/btrfs-snapshot-rotation.sh"
 	export mark="manual"
 	export versions=28
+	
+	#
+	# determine the status for all services to be stopped/started
+	#
+	for prog in  'mysql' 'pihole-FTL' 'lighttpd' 'syncthing@pi' 'docker' 'containerd' 'lightdm' 'log2ram' 'cockpit' 'mattermost'
+	do
+		systemctl -q --no-pager status ${prog} >/dev/null 2>&1
+		rc=$?
+    		PROGS[${prog}]=${rc}
+  	done
+  	export PROGS
 }
 
 
@@ -110,15 +122,18 @@ progs () {
 	local prog
 	local action=${1:=start}
 
-	for prog in 'mysql' 'pihole-FTL' 'lighttpd' 'syncthing@pi' 'docker' 'containerd' 'lightdm' 'log2ram'
+	for prog in ${!PROGS[@]} 
 	do
-		systemctl ${action} ${prog} && {
-			echo "${action} $prog successful" 
-		}||{
-			errexit 25
-		}
+		if [ ${PROGS[$prog]} == 0 ] 
+		then
+			systemctl ${action} ${prog} && {
+				echo "${action} ${prog} successful" 
+			}||{
+				errexit 25
+			}
+		fi
 	done
-	[ "$action" == "start" ] && pihole restartdns 
+	[ "${action}" == "start" ] && pihole restartdns 
 	return 0
 }
 

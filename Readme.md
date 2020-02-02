@@ -19,6 +19,7 @@ E.g.:
 * RaspiBackup.sh umount sdimage [mountdir]
 * RaspiBackup.sh gzip [-df] sdimage
 * RaspiBackup.sh showdf sdimage
+* RaspiBackup.sh resize [-s] size sdimage
 ### Commands:
 
 * *start* - starts complete backup of RPi's SD Card to 'sdimage'
@@ -26,6 +27,7 @@ E.g.:
 * *umount* - unmounts the 'sdimage' from 'mountdir'
 * *gzip* - compresses the 'sdimage' to 'sdimage'.gz
 * *showdf* - Shows allocation of image
+* *resize* - resize the image
 ### Options:
 
 * -c creates the SD Image if it does not exist
@@ -35,7 +37,7 @@ E.g.:
 * -d deletes the SD Image after successful compression
 * -f forces overwrite of 'sdimage'.gz if it exists
 * -L logfile writes rsync log to 'logfile'
-* -s define the size of the image file
+* -s define the size of the image file 
 
 ### Examples:
 
@@ -70,6 +72,16 @@ RaspiBackup.sh umount /path/to/backup.img
 show allocation of SD Image:
 ```
 RaspiBackup.sh showdf /path/to/backup.img
+```
+
+increase the size of the SD Image by 1000m:
+```
+RaspiBackup.sh resize  /path/to/backup.img
+```
+
+increase the size of the SD Image by  a specific amount (here 2000 Mb):
+```
+RaspiBackup.sh resize -s 2000  /path/to/backup.img
 ```
 
 
