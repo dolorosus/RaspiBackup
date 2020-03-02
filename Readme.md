@@ -91,3 +91,10 @@ This script takes a backup while the source partitions are mounted and in use. T
 
 To minimize inconsistencies, you should terminate as many services as possible before starting the backup. An example is provided as daily.sh.
 
+### Recommendation:
+
+Use a file system for the target that can handle snapshots (e.g. BTRFS). 
+Creating a snapshot, before starting a backup,  results in a space efficient versioning backup.
+
+
+
