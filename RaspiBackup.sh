@@ -20,7 +20,7 @@
 #
 #
 # Defaults
-# Size of bootpartiotion in MB
+# Size of bootpartition in MB
 BOOTSIZE=250
 
 setup () {
@@ -73,8 +73,7 @@ error () {
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create () {
 
-BOOTSIZE=${BOOTSIZE:-250}
-
+    BOOTSIZE=${BOOTSIZE:-250}
 
     trace "Creating sparse "${IMAGE}", the apparent size of $SDCARD"
     dd if=/dev/zero of="${IMAGE}" bs=${BLOCKSIZE} count=0 seek=${SIZE}
@@ -204,8 +203,10 @@ do_mount () {
     mkdir -p ${MOUNTDIR}/boot
     mount ${LOOPBACK}p1 ${MOUNTDIR}/boot
 }
-
+#####################################################################################################
+# Do the backup!
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
+#####################################################################################################
 do_backup () {
 
     local rsyncopt
@@ -258,9 +259,9 @@ do_umount () {
     losetup -d ${LOOPBACK}
 }
 
-#
+######################################################################################################
 # resize image
-#
+######################################################################################################
 do_resize () {
 	local SIZE=${1:-1000}
 	
@@ -308,7 +309,9 @@ ctrl_c () {
     error "SD Image backup process interrupted"
 }
 
+#####################################################################################################
 # Prints usage information
+#####################################################################################################
 usage () {
 cat<<EOF    
     ${MYNAME}
@@ -372,22 +375,14 @@ EOF
 
 setup
 
+#----------------------------------------------------------------------------------------------------
 # Make sure we have root rights
-if [ $(id -u) -ne 0 ]; then
-    error "Please run as root. Try sudo."
-fi
+#----------------------------------------------------------------------------------------------------
+[ $(id -u) -ne 0 ] &&  error "Please run as root. Try sudo."
 
-#
-# Check for dependencies
-#
-for c in dd losetup parted sfdisk partx mkfs.vfat mkfs.ext4 mountpoint rsync
-do
-    command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
-done
-
-
-
+#----------------------------------------------------------------------------------------------------
 # Read the command from command line
+#----------------------------------------------------------------------------------------------------
 case "${1}" in
     
     start|mount|umount|gzip|chbootenv|showdf|resize) opt_command=${1}
@@ -404,10 +399,9 @@ case "${1}" in
 esac
 shift 1
 
-# Make sure we have root rights
-[ $(id -u) -ne 0 ] &&  error "Please run as root. Try sudo."
-
+#----------------------------------------------------------------------------------------------------
 # Read the options from command line
+#----------------------------------------------------------------------------------------------------
 while getopts ":czdflL:i:r:s:" opt; do
     case ${opt} in
         c)  opt_create=1;;
@@ -426,12 +420,16 @@ while getopts ":czdflL:i:r:s:" opt; do
     esac
 done
 shift $((OPTIND-1))
-#
-# setting defaults if -i or -s is ommitted
-#
+
+#----------------------------------------------------------------------------------------------------
+# setting defaults
+# $SIZE is set to the last sector of the last partition
+#----------------------------------------------------------------------------------------------------
 SDCARD=${SDCARD:-"/dev/mmcblk0"}
-SIZE=${SIZE:-$(blockdev --getsz $SDCARD)}
-BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)}
+BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)} || error "Could not determine blocksize of ${SDCARD}"
+SIZE=$(fdisk -l -o END ${SDCARD}|tail -1) || error "Could not determine size of ${SDCARD}"
+
+# Default for resizing the image
 RSIZE=${RSIZE:-1000}
 
 case "${SDCARD}" in
@@ -440,12 +438,13 @@ case "${SDCARD}" in
     "/dev/disk/by-id/"*) SUFFIX="-part";;
     *) SUFFIX="p";;
 esac
-
+#####################################################################################################
 # Preflight checks
-#
-# Read the sdimage path from command line
-#   and check for existance
-#
+#####################################################################################################
+
+#----------------------------------------------------------------------------------------------------
+# Read the sdimage path from command line and check for existance
+#----------------------------------------------------------------------------------------------------
 IMAGE=${1}
 [ -z "${IMAGE}" ] && error "No sdimage specified"
 
@@ -457,10 +456,17 @@ else
         error "${IMAGE} does not exist\nUse -c to allow creation"
     fi
 fi
+#----------------------------------------------------------------------------------------------------
+# Check for dependencies
+#----------------------------------------------------------------------------------------------------
+for c in dd losetup parted sfdisk partx mkfs.vfat mkfs.ext4 mountpoint rsync
+do
+    command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
+done
 
-#
-# Checks for compressing the image
-#
+#----------------------------------------------------------------------------------------------------
+# Check for gzip if compression option is set
+#----------------------------------------------------------------------------------------------------
 if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
     for c in pv gzip
 	do
@@ -473,9 +479,9 @@ if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
 fi
 
 
-#
+#----------------------------------------------------------------------------------------------------
 # Identify which loopback device to use
-#
+#----------------------------------------------------------------------------------------------------
 LOOPBACK=$(losetup -j "${IMAGE}" | grep -o ^[^:]*)
 if [ ${opt_command} = umount ]; then
     [ -z ${LOOPBACK} ] && error "No /dev/loop<X> attached to ${IMAGE}"
@@ -485,8 +491,9 @@ else
     LOOPBACK=$(losetup -f)
 fi
 
+#----------------------------------------------------------------------------------------------------
 # Read the optional mountdir from command line
-#
+#----------------------------------------------------------------------------------------------------
 MOUNTDIR=${2}
 if [ -z ${MOUNTDIR} ]; then
     MOUNTDIR=/mnt/$(basename "${IMAGE}")/
@@ -504,18 +511,18 @@ else
     fi
 fi
 
-#
-#  All preflight checks done
-#
-
 #####################################################################################################
-#
-# Trap keyboard interrupt (ctrl-c)
+#  All preflight checks done
+#####################################################################################################
 
+#----------------------------------------------------------------------------------------------------
+# Trap keyboard interrupt (ctrl-c)
+#----------------------------------------------------------------------------------------------------
 trap ctrl_c SIGINT SIGTERM
 
-
+#----------------------------------------------------------------------------------------------------
 # Do the requested functionality
+#----------------------------------------------------------------------------------------------------
 case ${opt_command} in
     start)
             trace "Starting SD Image backup process"
