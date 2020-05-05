@@ -55,14 +55,10 @@ setup () {
 }
 
 # Echo success messages in green
-success () {
-    echo -e "${GREEN}${1}${NOATT}\n"
-}
+success () { echo -e "${GREEN}${1}${NOATT}\n"; }
 
 # Echos traces with yellow text to distinguish from other output
-trace () {
-    echo -e "${YELLOW}${1}${NOATT}"
-}
+trace () { echo -e "${YELLOW}${1}${NOATT}";}
 
 # Echos an error string in red text and exit
 error () {
@@ -70,7 +66,9 @@ error () {
     exit 1
 }
 
-# Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
+#----------------------------------------------------------------------------------------------------
+# Creates a sparse "${IMAGE}"  and attach it to ${LOOPBACK}
+#----------------------------------------------------------------------------------------------------
 do_create () {
 
     BOOTSIZE=${BOOTSIZE:-250}
@@ -188,8 +186,11 @@ change_bootenv () {
     fi 
 }
 
+#----------------------------------------------------------------------------------------------------
 # Mounts the ${IMAGE} to ${LOOPBACK} (if needed) and ${MOUNTDIR}
+#----------------------------------------------------------------------------------------------------
 do_mount () {
+
     # Check if do_create already attached the SD Image
     [ $(losetup -f) = ${LOOPBACK} ] && {
         trace "Attaching ${IMAGE} to ${LOOPBACK}"
@@ -203,6 +204,7 @@ do_mount () {
     mkdir -p ${MOUNTDIR}/boot
     mount ${LOOPBACK}p1 ${MOUNTDIR}/boot
 }
+
 #####################################################################################################
 # Do the backup!
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
@@ -231,7 +233,6 @@ do_backup () {
             --exclude='home/*/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
              / ${MOUNTDIR}/
-
     else
         trace "Skipping rsync since ${MOUNTDIR} is not a mount point"
     fi
@@ -244,8 +245,11 @@ do_showdf () {
     echo ""
 }
 
+#----------------------------------------------------------------------------------------------------
 # Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
+#----------------------------------------------------------------------------------------------------
 do_umount () {
+
     trace "Flushing to disk"
     sync; sync
 
@@ -259,33 +263,37 @@ do_umount () {
     losetup -d ${LOOPBACK}
 }
 
-######################################################################################################
+#----------------------------------------------------------------------------------------------------
 # resize image
-######################################################################################################
+#----------------------------------------------------------------------------------------------------
 do_resize () {
-	local SIZE=${1:-1000}
-	
+
+    local SIZE=${1:-1000}
+    
     do_umount >/dev/null 2>&1
-	
-	trace "increasing size of ${IMAGE} by ${SIZE}M"
+    
+    trace "increasing size of ${IMAGE} by ${SIZE}M"
     truncate --size=+${SIZE}M "${IMAGE}" || error "Error adding ${SIZE}M to ${IMAGE}"
-	
+    
     losetup ${LOOPBACK} "${IMAGE}"
-	trace "resize partition 2 of ${IMAGE}"
+    trace "resize partition 2 of ${IMAGE}"
     parted -s ${LOOPBACK} resizepart 2 100%
     partx --add ${LOOPBACK}
-	
-	trace "expanding filesystem"
+    
+    trace "expanding filesystem"
     e2fsck -f ${LOOPBACK}p2
     resize2fs ${LOOPBACK}p2
-	   
-	trace "Detaching ${IMAGE} from ${LOOPBACK}"
+       
+    trace "Detaching ${IMAGE} from ${LOOPBACK}"
     partx --delete ${LOOPBACK}
     losetup -d ${LOOPBACK}
 }
 
+#----------------------------------------------------------------------------------------------------
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
+#----------------------------------------------------------------------------------------------------
 do_compress () {
+
     trace "Compressing ${IMAGE} to ${IMAGE}.gz"
     pv -tpreb "${IMAGE}" | gzip > "${IMAGE}.gz.tmp"
     [ -s "${IMAGE}.gz.tmp" ] && { 
@@ -294,25 +302,26 @@ do_compress () {
     }
 }
 
+#----------------------------------------------------------------------------------------------------
 # Tries to cleanup after Ctrl-C interrupt
+#----------------------------------------------------------------------------------------------------
 ctrl_c () {
+
     trace "Ctrl-C detected."
 
-    if [ -s "${IMAGE}.gz.tmp" ]; then
-        rm "${IMAGE}.gz.tmp"
-    else
-        do_umount
-    fi
+    [ -s "${IMAGE}.gz.tmp" ] &&  rm "${IMAGE}.gz.tmp"
+    do_umount
 
     [ -n "${opt_log}" ] && trace "See rsync log in ${LOG}"
     
     error "SD Image backup process interrupted"
 }
 
-#####################################################################################################
+#----------------------------------------------------------------------------------------------------
 # Prints usage information
-#####################################################################################################
+#----------------------------------------------------------------------------------------------------
 usage () {
+
 cat<<EOF    
     ${MYNAME}
     
@@ -327,7 +336,7 @@ cat<<EOF
     
             ${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'
             ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
-			${BOLD}umount${NOATT}     unmounts the 'sdimage'
+            ${BOLD}umount${NOATT}     unmounts the 'sdimage'
             ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz (only useful for archiving the image)
             ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
             ${BOLD}showdf${NOATT}     shows allocation of the image
@@ -343,7 +352,7 @@ cat<<EOF
             ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
             ${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)
             ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)
-	        ${BOLD}-r Mb${NOATT}      the image will be resized by this value 		
+            ${BOLD}-r Mb${NOATT}      the image will be resized by this value         
     
     Examples:
     
@@ -357,12 +366,12 @@ cat<<EOF
         ${MYNAME} start /path/to/\$(uname -n).img
             uses the RPi's hostname as the SD Image filename
     
-	    ${MYNAME} resize  /path/to/rpi_backup.img
+        ${MYNAME} resize  /path/to/rpi_backup.img
             expand rpi_backup.img by 1000M
-			
-		${MYNAME} resize -s 2000 /path/to/rpi_backup.img
+            
+        ${MYNAME} resize -s 2000 /path/to/rpi_backup.img
             expand rpi_backup.img by 2000M
-			
+            
         ${MYNAME} mount /path/to/\$(uname -n).img /mnt/rpi_image
             mounts the RPi's SD Image in /mnt/rpi_image
 
@@ -376,18 +385,12 @@ EOF
 setup
 
 #----------------------------------------------------------------------------------------------------
-# Make sure we have root rights
-#----------------------------------------------------------------------------------------------------
-[ $(id -u) -ne 0 ] &&  error "Please run as root. Try sudo."
-
-#----------------------------------------------------------------------------------------------------
 # Read the command from command line
 #----------------------------------------------------------------------------------------------------
 case "${1}" in
     
     start|mount|umount|gzip|chbootenv|showdf|resize) opt_command=${1}
     ;;
-        
         
     -h|--help)
         usage
@@ -412,7 +415,8 @@ while getopts ":czdflL:i:r:s:" opt; do
         L)  opt_log=1
             LOG=${OPTARG};;
         i)  SDCARD=${OPTARG};;
-		r)  RSIZE=${OPTARG};;
+        r)  RSIZE=${OPTARG:-1000}
+            BLOCKSIZE=1M ;;
         s)  SIZE=${OPTARG}
             BLOCKSIZE=1M ;;
         \?) error "Invalid option: -${OPTARG}\nSee '${MYNAME} --help' for usage";;
@@ -422,15 +426,17 @@ done
 shift $((OPTIND-1))
 
 #----------------------------------------------------------------------------------------------------
+# Make sure we have root rights
+#----------------------------------------------------------------------------------------------------
+[ $(id -u) -ne 0 ] &&  error "Please run as root. Try sudo."
+
+#----------------------------------------------------------------------------------------------------
 # setting defaults
 # $SIZE is set to the last sector of the last partition
 #----------------------------------------------------------------------------------------------------
 SDCARD=${SDCARD:-"/dev/mmcblk0"}
 BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)} || error "Could not determine blocksize of ${SDCARD}"
 SIZE=$(fdisk -l -o END ${SDCARD}|tail -1) || error "Could not determine size of ${SDCARD}"
-
-# Default for resizing the image
-RSIZE=${RSIZE:-1000}
 
 case "${SDCARD}" in
     "/dev/mmc"*) SUFFIX="p";;
@@ -469,15 +475,14 @@ done
 #----------------------------------------------------------------------------------------------------
 if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
     for c in pv gzip
-	do
+    do
         command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
     done
-	
+    
     if [ -s "${IMAGE}".gz ] && [ ! -n "${opt_force}" ]; then
         error "${IMAGE}.gz already exists\nUse -f to force overwriting"
     fi
 fi
-
 
 #----------------------------------------------------------------------------------------------------
 # Identify which loopback device to use
@@ -534,13 +539,9 @@ case ${opt_command} in
             change_bootenv 
             do_showdf
             do_umount
-            if [ -n "${opt_compress}" ]; then
-                do_compress
-            fi
+            [ -n "${opt_compress}" ] && do_compress
             success "SD Image backup process completed."
-            if [ -n "${opt_log}" ]; then
-                trace "See rsync log in ${LOG}"
-            fi
+            [ -n "${opt_log}" ] && trace "See rsync log in ${LOG}"
             ;;
     mount)
             if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
@@ -549,9 +550,9 @@ case ${opt_command} in
             do_mount
             success "SD Image has been mounted and can be accessed at:\n    ${MOUNTDIR}"
             ;;
-	umount)
-			do_umount
-			;;
+    umount)
+            do_umount
+            ;;
     gzip)
             do_compress
             ;;
