@@ -37,18 +37,18 @@ E.g.:
 * -d deletes the SD Image after successful compression
 * -f forces overwrite of 'sdimage'.gz if it exists
 * -L logfile writes rsync log to 'logfile'
-* -s define the size of the image file 
+* -s define the size of the image file in M
 
 ### Examples:
 
-Start backup to `backup.img`, creating it if it does not exist:
+Start backup to `backup.img`, creating it if it does not exist. The size of the image corresponds to size of the source partition.
 ```
 RaspiBackup.sh start -c /path/to/backup.img
 ```
 
 Start backup to `backup.img`, creating it if it does not exist, limiting 
- the size to 8000Mb.
- Remember you are responsible defineing the size large enough to hold all files to backup! There's no such thing as a size check. 
+ the size to 8000M.
+ Keep in mind: you are responsible defineing a size large enough to hold all files to backup! There's no such thing as a size check.  
 ```
 RaspiBackup.sh start -s 8000 -c /path/to/backup.img
 ```
@@ -74,12 +74,12 @@ show allocation of SD Image:
 RaspiBackup.sh showdf /path/to/backup.img
 ```
 
-increase the size of the SD Image by 1000m:
+increase the size of the SD Image by 1000M:
 ```
 RaspiBackup.sh resize  /path/to/backup.img
 ```
 
-increase the size of the SD Image by  a specific amount (here 2000 Mb):
+increase the size of the SD Image by  a specific amount (here 2000M):
 ```
 RaspiBackup.sh resize -s 2000  /path/to/backup.img
 ```
