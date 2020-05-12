@@ -54,17 +54,9 @@ setup () {
         MYNAME=$(basename $0)
 }
 
-# Echo success messages in green
 success () { echo -e "${GREEN}${1}${NOATT}\n"; }
-
-# Echos traces with yellow text to distinguish from other output
-trace () { echo -e "${YELLOW}${1}${NOATT}";}
-
-# Echos an error string in red text and exit
-error () {
-    echo -e "${RED}${1}${NOATT}" >&2
-    exit 1
-}
+trace () { echo -e "${YELLOW}${1}${NOATT}"; }
+error () { echo -e "${RED}${1}${NOATT}" >&2; exit 1; }
 
 #----------------------------------------------------------------------------------------------------
 # Creates a sparse "${IMAGE}"  and attach it to ${LOOPBACK}
