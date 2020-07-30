@@ -186,7 +186,7 @@ trap "progs start" SIGTERM SIGINT
 setup
 
 #
-# Bailout in case of uncought error
+# Bailout in case of uncaught error
 #
 set -e
 
