@@ -132,11 +132,11 @@ do_inital_backup () {
 	msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
 	backup="ko"
 	$bckscript start ${creopt} "${destpath}/#${bcknewname}" && {
+		backup="ok" 
 		msg "moving  ${destpath}/#${bcknewname} to ${destpath}/${bcknewname}"
 		mv "${destpath}/#${bcknewname}" "${destpath}/${bcknewname}"  
 		msg "Backup successful"
 		msg "Backupfile is_: ${destpath}/${bcknewname}"
-		backup="ok" 
 }
 
 	progs start
@@ -161,6 +161,7 @@ do_backup () {
 	msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
 	backup="ko"
 	$bckscript start ${creopt} "${destpath}/#${bcknewname}"  && {
+		backup="ok" 
 		msg "moving  ${destpath}/#${bcknewname} to ${destpath}/${bcknewname}"
 		mv "${destpath}/#${bcknewname}" "${destpath}/${bcknewname}"
 		msg "Backup successful"
