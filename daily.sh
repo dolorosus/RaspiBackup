@@ -48,6 +48,12 @@ setup () {
 		BOLD=""
 		NOATT=""
 	}
+	
+	TICK="[${GREEN}✓${NOATT}]"
+	CROSS="[${RED}✗${NOATT}]"
+	INFO="[i]"
+	QST="[?]"
+	DONE="${GREEN} done!${NOATT}"
 	MYNAME=$(basename $0)
 	
 	export stamp=$(date +%y%m%d_%H%M%S)
@@ -71,32 +77,35 @@ setup () {
 
 
 msg () {
-	echo "${YELLOW}${1}${NOATT}"
+	echo "${INFO} ${YELLOW}${1}${NOATT}"
+}
+msgok () {
+	echo "${TICK} ${YELLOW}${1}${NOATT}"
 }
 
 errexit () {
 	
 	case "${1}" in
-		1)	echo "${RED}You have to be root to run this script${NOATT}"
+		1)	echo "${CROSS}${RED} You have to be root to run this script${NOATT}"
 			exit ${1};;
 				
-		10)	echo "${RED}More than one backupfile according to ${destpath}/${destpatt} found."
+		10)	echo "${CROSS}${RED} More than one backupfile according to ${destpath}/${destpatt} found."
 			echo "Can't decide which one to use.${NOATT}"
 			exit ${1};;
 
-		11)	echo "${RED}backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
+		11)	echo "${CROSS}${RED} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
 			exit ${1};;
 
-		12)	echo "${RED}backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
+		12)	echo "${CROSS}${RED} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
 			exit ${1};;
         
-		20)	echo "${RED}No executable file $bckscript found.${NOATT}"
+		20)	echo "${CROSS}${RED} No executable file $bckscript found.${NOATT}"
 			exit ${1};;
 
-		21)	echo "${RED}No executable file $snapscript found.${NOATT}"
+		21)	echo "${CROSS}${RED} No executable file $snapscript found.${NOATT}"
 			exit ${1};;
 			
-		25)	echo "${YELLOW}${action} $prog failed${NOATT}"
+		25)	echo "${TICK} ${YELLOW}${action} $prog failed${NOATT}"
 			;;
 			
 		30) echo "${RED}something went wrong..."
@@ -117,7 +126,7 @@ progs () {
 
 	set +e
 	systemctl ${action} ${prog} >/dev/null 2>&1
-	[ -z "${setopt##*e*}" ] && echo set -e
+	[ -z "${setopt##*e*}" ] && set -e
 	
 	[ "${action}" == "start" ] && pihole restartdns
   
@@ -132,11 +141,11 @@ do_inital_backup () {
 	msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
 	backup="ko"
 	$bckscript start ${creopt} "${destpath}/#${bcknewname}" && {
-		backup="ok" 
 		msg "moving  ${destpath}/#${bcknewname} to ${destpath}/${bcknewname}"
 		mv "${destpath}/#${bcknewname}" "${destpath}/${bcknewname}"  
-		msg "Backup successful"
+		msgok "Backup successful"
 		msg "Backupfile is_: ${destpath}/${bcknewname}"
+		backup="ok" 
 }
 
 	progs start
@@ -161,17 +170,16 @@ do_backup () {
 	msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
 	backup="ko"
 	$bckscript start ${creopt} "${destpath}/#${bcknewname}"  && {
-		backup="ok" 
+		backup="ok"
 		msg "moving  ${destpath}/#${bcknewname} to ${destpath}/${bcknewname}"
 		mv "${destpath}/#${bcknewname}" "${destpath}/${bcknewname}"
-		msg "Backup successful"
+		msgok "Backup successful"
 	 	msg "Backupfile is_: ${destpath}/${bcknewname}"  
 	}
   
 	progs start
 
 	[ ${backup} = "ok" ] && return 0
-
   	errexit 30
   
 }
