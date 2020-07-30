@@ -19,7 +19,6 @@
 #	2019-04-30	initial commit by Dolorosus
 #
 #
-declare -A PROGS
 
 setup () {
 	#
@@ -52,28 +51,22 @@ setup () {
 	MYNAME=$(basename $0)
 	
 	export stamp=$(date +%y%m%d_%H%M%S)
-	export destvol="/media/pi/usbBack"
+	export destvol="/mnt/USB64"
 	export destpath="${destvol}/BACKUPS" 
 	export snappath="${destvol}/.snapshots/BACKUPS"
 	export destpatt="MyRaspi-2*_[0-9]*.img"
 	export bcknewname="MyRaspi-${stamp}.img"
 	export tmppre="\#"
 
+	
 	export bckscript="/home/pi/scripts/RaspiBackup.sh"
 	export snapscript="/home/pi/scripts/btrfs-snapshot-rotation.sh"
 	export mark="manual"
 	export versions=28
-	
 	#
-	# determine the status for all services to be stopped/started
+	# adapt according to your needs
 	#
-	for prog in  'mysql' 'pihole-FTL' 'lighttpd' 'syncthing@pi' 'docker' 'containerd' 'lightdm' 'log2ram' 'cockpit' 'mattermost'
-	do
-		systemctl -q --no-pager status ${prog} >/dev/null 2>&1
-		rc=$?
-    		PROGS[${prog}]=${rc}
-  	done
-  	export PROGS
+	export prog='mysql pihole-FTL lighttpd syncthing@pi docker containerd lightdm log2ram cockpit mattermost'
 }
 
 
@@ -119,23 +112,39 @@ errexit () {
 
 progs () {
 
-	local prog
 	local action=${1:=start}
+	local setopt=$-
 
-	for prog in ${!PROGS[@]} 
-	do
-		if [ ${PROGS[$prog]} == 0 ] 
-		then
-			systemctl ${action} ${prog} && {
-				echo "${action} ${prog} successful" 
-			}||{
-				errexit 25
-			}
-		fi
-	done
-	[ "${action}" == "start" ] && pihole restartdns 
-	return 0
+	set +e
+	systemctl ${action} ${prog} >/dev/null 2>&1
+	[ -z "${setopt##*e*}" ] && echo set -e
+	
+	[ "${action}" == "start" ] && pihole restartdns
+  
+	return 0	
 }
+
+do_inital_backup () {
+	
+ 	local creopt="-c -s 4000 "
+	progs stop
+
+	msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
+	backup="ko"
+	$bckscript start ${creopt} "${destpath}/#${bcknewname}" && {
+		msg "moving  ${destpath}/#${bcknewname} to ${destpath}/${bcknewname}"
+		mv "${destpath}/#${bcknewname}" "${destpath}/${bcknewname}"  
+		msg "Backup successful"
+		msg "Backupfile is_: ${destpath}/${bcknewname}"
+		backup="ok" 
+}
+
+	progs start
+
+	  [ ${backup} = "ok" ] && return 0
+	errexit 30
+}
+
 
 do_backup () {
 	
@@ -145,21 +154,25 @@ do_backup () {
 
 	# move the destination to a temporary filename while 
 	# the backup is working
+	[ -z "${creopt}" ] && {	
 	msg "moving ${bckfile} to ${destpath}/#${bcknewname}"
 	mv "${bckfile}" "${destpath}/#${bcknewname}"
+	}
 	msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
-	$bckscript start ${creopt} "${destpath}/#${bcknewname}" && {
+	backup="ko"
+	$bckscript start ${creopt} "${destpath}/#${bcknewname}"  && {
 		msg "moving  ${destpath}/#${bcknewname} to ${destpath}/${bcknewname}"
 		mv "${destpath}/#${bcknewname}" "${destpath}/${bcknewname}"
-		progs start
-	}||{
-		progs start
-		errexit 30
+		msg "Backup successful"
+	 	msg "Backupfile is_: ${destpath}/${bcknewname}"  
 	}
- 
-	msg "Backup successful"
-	msg "Backupfile is_: ${destpath}/${bcknewname}"
-	return 0
+  
+	progs start
+
+	[ ${backup} = "ok" ] && return 0
+
+  	errexit 30
+  
 }
 
 # ===============================================================================================================
@@ -179,8 +192,10 @@ set -e
 
 [ $(/usr/bin/id -u) == "0" ] || errexit 1
 [ "$(ls -1 ${destpath}/${destpatt}|wc -l)" == "0" ] && {
-  do_backup -c
-  exit 0
+	progs stop
+	do_inital_backup 
+	progs start
+	exit 0
 }
 
 #
@@ -202,6 +217,11 @@ bckfile="$(ls -1 ${destpath}/${destpatt})"
 # create a snapshot of current state
 #
 ${snapscript}  ${destpath} ${destvol}/.snapshots/BACKUPS ${mark} ${versions}
+
+#
+# Rotate the logfiles
+#
+logrotate  -f /etc/logrotate.conf
 
 #
 # finally do the backup
