@@ -40,7 +40,6 @@ MYNAME=$(basename -- $0)
 msgok () {
     echo -e "${TICK} {1}${NOATT}\n"
 }
-
 msg () {
     echo -e "${IDENT} ${1}${NOATT}"
 }
