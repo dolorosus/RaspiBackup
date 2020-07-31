@@ -20,66 +20,48 @@
 #
 #
 # Defaults
-# Size of bootpartition in MB
+# Size of bootpartiotion in MB
 BOOTSIZE=250
 
-setup () {
-    #
-    # Define some fancy colors only if connected to a terminal.
-    # Thus output to file is no more cluttered
-    #
-        [ -t 1 ] && {
-            RED=$(tput setaf 1)
-            GREEN=$(tput setaf 2)
-            YELLOW=$(tput setaf 3)
-            BLUE=$(tput setaf 4)
-            MAGENTA=$(tput setaf 5)
-            CYAN=$(tput setaf 6)
-            WHITE=$(tput setaf 7)
-            RESET=$(tput setaf 9)
-            BOLD=$(tput bold)
-            NOATT=$(tput sgr0)
-        }||{
-            RED=""
-            GREEN=""
-            YELLOW=""
-            BLUE=""
-            MAGENTA=""
-            CYAN=""
-            WHITE=""
-            RESET=""
-            BOLD=""
-            NOATT=""
-        }
-        MYNAME=$(basename $0)
+# in case COLORS.sh is missing
+msgok () {
+    echo -e "${TICK} ${1}${NOATT}"
+}
+msg () {
+    echo -e "${IDENT} ${1}${NOATT}"
+}
+msgwarn () {
+    echo -e "${WARN} ${1}${NOATT}"
+}
+# Echos an error string in red text and exit
+error () {
+    echo -e "${CROSS} ${1}${NOATT}" >&2
+    exit 1
 }
 
-success () { echo -e "${GREEN}${1}${NOATT}\n"; }
-trace () { echo -e "${YELLOW}${1}${NOATT}"; }
-error () { echo -e "${RED}${1}${NOATT}" >&2; exit 1; }
+[ -f ./COLORS.sh ] && source ./COLORS.sh
 
-#----------------------------------------------------------------------------------------------------
-# Creates a sparse "${IMAGE}"  and attach it to ${LOOPBACK}
-#----------------------------------------------------------------------------------------------------
+# Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create () {
 
-    BOOTSIZE=${BOOTSIZE:-250}
+BOOTSIZE=${BOOTSIZE:-250}
 
-    trace "Creating sparse "${IMAGE}", the apparent size of $SDCARD"
+
+    msg "Creating sparse "${IMAGE}", the apparent size of $SDCARD"
     dd if=/dev/zero of="${IMAGE}" bs=${BLOCKSIZE} count=0 seek=${SIZE}
 
     if [ -s "${IMAGE}" ]; then
-        trace "Attaching "${IMAGE}" to ${LOOPBACK}"
+        msg "Attaching "${IMAGE}" to ${LOOPBACK}"
         losetup ${LOOPBACK} "${IMAGE}"
     else
         error "${IMAGE} has not been created or has zero size"
     fi
 
-    trace "Creating partitions on ${LOOPBACK}"
+    msg "Creating partitions on ${LOOPBACK}"
     parted -s ${LOOPBACK} mktable msdos
     parted -s ${LOOPBACK} mkpart primary fat32 4MiB ${BOOTSIZE}MiB
     parted -s ${LOOPBACK} mkpart primary ext4 ${BOOTSIZE}MiB 100%
-    trace "Formatting partitions"
+    msg "Formatting partitions"
     partx --add ${LOOPBACK}
     mkfs.vfat -n BOOT -F32 ${LOOPBACK}p1
     mkfs.ext4 ${LOOPBACK}p2
@@ -111,12 +93,12 @@ change_bootenv () {
     for ((p = 1; p <= 2; p++))
     do
         srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}${SUFFIX}${p}") || {
-            trace "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
+            msg "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
             editmanual=true
         }
 
         dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
-            trace "Could not find PARTUUID of ${LOOPBACK}p${p}"
+            msg "Could not find PARTUUID of ${LOOPBACK}p${p}"
             editmanual=true
             } 
         #
@@ -124,14 +106,14 @@ change_bootenv () {
         #  the PARTUUID of the backup
         #
         grep -q "PARTUUID=${srcpartuuid[${p}]}" $fstab_tmp && {
-            trace "Changeing PARTUUID from ${srcpartuuid[${p}]} to ${dstpartuuid[${p}]} in $fstab_tmp"
+            msg "Changeing PARTUUID from ${srcpartuuid[${p}]} to ${dstpartuuid[${p}]} in $fstab_tmp"
             sed -i "s/PARTUUID=${srcpartuuid[${p}]}/PARTUUID=${dstpartuuid[${p}]}/" $fstab_tmp||{
-                trace "PARTUUID ${dstpartuuid[2]} has not been changed in  $fstab_tmp"
+                msgwarn "PARTUUID ${dstpartuuid[2]} has not been changed in  $fstab_tmp"
                 editmanual=true
             }
                 
         }||{
-            trace "PARTUUID=${srcpartuuid[${p}]} not found in $fstab_tmp"
+            msgwarn "PARTUUID=${srcpartuuid[${p}]} not found in $fstab_tmp"
             editmanual=true
         }
 
@@ -141,11 +123,11 @@ change_bootenv () {
     # Now the Uuser has a second chance 
     if ${editmanual}
     then
-        trace "fstab cannot be changed automatically."
-        trace "correct fstab on destination manually."
+        msgwarn "fstab cannot be changed automatically."
+        msgwarn "correct fstab on destination manually."
     else
         cp $fstab_tmp ${MOUNTDIR}/etc/fstab
-        success "Changing PARTUUIDs in fstab successful"
+        msgok "PARTUUIDs changed successful in fstab"
     fi 
     
     #
@@ -154,53 +136,47 @@ change_bootenv () {
     editmanual=false
     cmdline_tmp=/tmp/cmdline.txt
     cp /boot/cmdline.txt $cmdline_tmp || {
-        trace "could not copy ${LOOPBACK}p1/cmdline.txt to $cmdline_tmp"
+        msgwarn "could not copy ${LOOPBACK}p1/cmdline.txt to $cmdline_tmp"
         editmanual=true
         }
     grep -q "PARTUUID=${srcpartuuid[2]}" $cmdline_tmp && {
-            trace "Changeing PARTUUID from ${srcpartuuid[2]} to ${dstpartuuid[2]} in $cmdline_tmp"
+            msg "Changeing PARTUUID from ${srcpartuuid[2]} to ${dstpartuuid[2]} in $cmdline_tmp"
             sed -i "s/PARTUUID=${srcpartuuid[2]}/PARTUUID=${dstpartuuid[2]}/" $cmdline_tmp||{
-                trace "PARTUUID ${dstpartuuid[2]} has not been changed in $cmdline_tmp"
+                msgwarn "PARTUUID ${dstpartuuid[2]} has not been changed in $cmdline_tmp"
                 editmanual=true
             }
         }||{
-                trace "PARTUUID ${srcpartuuid[2]} not found in  $cmdline_tmp"
+                msgwarn "PARTUUID ${srcpartuuid[2]} not found in  $cmdline_tmp"
                 editmanual=true
         }
     
     if ${editmanual}
     then
-        trace "cmdline.txt cannot be changed automatically."
-        trace "correct cmdline.txt on destination manually."
+        msgwarn "cmdline.txt cannot be changed automatically."
+        msgwarn "correct cmdline.txt on destination manually."
     else
         cp $cmdline_tmp ${MOUNTDIR}/boot/cmdline.txt
-        success "Changing PARTUUID in cmdline.txt successful"
+        msgok "PARTUUID changed successful in cmdline.txt"
     fi 
 }
 
-#----------------------------------------------------------------------------------------------------
 # Mounts the ${IMAGE} to ${LOOPBACK} (if needed) and ${MOUNTDIR}
-#----------------------------------------------------------------------------------------------------
 do_mount () {
-
     # Check if do_create already attached the SD Image
     [ $(losetup -f) = ${LOOPBACK} ] && {
-        trace "Attaching ${IMAGE} to ${LOOPBACK}"
+        msg "Attaching ${IMAGE} to ${LOOPBACK}"
         losetup ${LOOPBACK} "${IMAGE}"
         partx --add ${LOOPBACK}
     }
 
-    trace "Mounting ${LOOPBACK}p1 and ${LOOPBACK}p2 to ${MOUNTDIR}"
+    msg "Mounting ${LOOPBACK}p1 and ${LOOPBACK}p2 to ${MOUNTDIR}"
     [ -n "${opt_mountdir}" ] || mkdir ${MOUNTDIR}
     mount ${LOOPBACK}p2 ${MOUNTDIR}
     mkdir -p ${MOUNTDIR}/boot
     mount ${LOOPBACK}p1 ${MOUNTDIR}/boot
 }
 
-#####################################################################################################
-# Do the backup!
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
-#####################################################################################################
 do_backup () {
 
     local rsyncopt
@@ -209,11 +185,11 @@ do_backup () {
     [ -n "${opt_log}" ] && rsyncopt="$rsyncopt --log-file ${LOG}"
 
     if mountpoint -q ${MOUNTDIR}; then
-        trace "Starting rsync backup of / and /boot/ to ${MOUNTDIR}"
-        trace "rsync /boot/ ${MOUNTDIR}/boot/"
+        msg "Starting rsync backup of / and /boot/ to ${MOUNTDIR}"
+        msg "rsync /boot/ ${MOUNTDIR}/boot/"
         rsync ${rsyncopt}  /boot/ ${MOUNTDIR}/boot/
-        trace ""
-        trace "rsync / to ${MOUNTDIR}"
+        msg ""
+        msg "rsync / to ${MOUNTDIR}"
         rsync ${rsyncopt} --exclude='.gvfs/**' \
             --exclude='tmp/**' \
             --exclude='proc/**' \
@@ -225,8 +201,9 @@ do_backup () {
             --exclude='home/*/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
              / ${MOUNTDIR}/
+
     else
-        trace "Skipping rsync since ${MOUNTDIR} is not a mount point"
+        msg "Skipping rsync since ${MOUNTDIR} is not a mount point"
     fi
 }
 
@@ -237,56 +214,49 @@ do_showdf () {
     echo ""
 }
 
-#----------------------------------------------------------------------------------------------------
 # Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
-#----------------------------------------------------------------------------------------------------
 do_umount () {
-
-    trace "Flushing to disk"
+    msg "Flushing to disk"
     sync; sync
 
-    trace "Unmounting ${LOOPBACK}p1 and ${LOOPBACK}p2 from ${MOUNTDIR}"
+    msg "Unmounting ${LOOPBACK}p1 and ${LOOPBACK}p2 from ${MOUNTDIR}"
     umount ${MOUNTDIR}/boot
     umount ${MOUNTDIR}
     [ -n "${opt_mountdir}" ] || rmdir ${MOUNTDIR}
 
-    trace "Detaching ${IMAGE} from ${LOOPBACK}"
+    msg "Detaching ${IMAGE} from ${LOOPBACK}"
     partx --delete ${LOOPBACK}
     losetup -d ${LOOPBACK}
 }
 
-#----------------------------------------------------------------------------------------------------
+#
 # resize image
-#----------------------------------------------------------------------------------------------------
+#
 do_resize () {
-
-    local SIZE=${1:-1000}
-    
+	local SIZE=${1:-1000}
+	
     do_umount >/dev/null 2>&1
-    
-    trace "increasing size of ${IMAGE} by ${SIZE}M"
+	
+	msg "increasing size of ${IMAGE} by ${SIZE}M"
     truncate --size=+${SIZE}M "${IMAGE}" || error "Error adding ${SIZE}M to ${IMAGE}"
-    
+	
     losetup ${LOOPBACK} "${IMAGE}"
-    trace "resize partition 2 of ${IMAGE}"
+	msg "resize partition 2 of ${IMAGE}"
     parted -s ${LOOPBACK} resizepart 2 100%
     partx --add ${LOOPBACK}
-    
-    trace "expanding filesystem"
+	
+	msg "expanding filesystem"
     e2fsck -f ${LOOPBACK}p2
     resize2fs ${LOOPBACK}p2
-       
-    trace "Detaching ${IMAGE} from ${LOOPBACK}"
+	   
+	msg "Detaching ${IMAGE} from ${LOOPBACK}"
     partx --delete ${LOOPBACK}
     losetup -d ${LOOPBACK}
 }
 
-#----------------------------------------------------------------------------------------------------
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
-#----------------------------------------------------------------------------------------------------
 do_compress () {
-
-    trace "Compressing ${IMAGE} to ${IMAGE}.gz"
+    msg "Compressing ${IMAGE} to ${IMAGE}.gz"
     pv -tpreb "${IMAGE}" | gzip > "${IMAGE}.gz.tmp"
     [ -s "${IMAGE}.gz.tmp" ] && { 
         mv -f "${IMAGE}.gz.tmp" "${IMAGE}.gz"
@@ -294,26 +264,23 @@ do_compress () {
     }
 }
 
-#----------------------------------------------------------------------------------------------------
 # Tries to cleanup after Ctrl-C interrupt
-#----------------------------------------------------------------------------------------------------
 ctrl_c () {
+    msg "Ctrl-C detected."
 
-    trace "Ctrl-C detected."
+    if [ -s "${IMAGE}.gz.tmp" ]; then
+        rm "${IMAGE}.gz.tmp"
+    else
+        do_umount
+    fi
 
-    [ -s "${IMAGE}.gz.tmp" ] &&  rm "${IMAGE}.gz.tmp"
-    do_umount
-
-    [ -n "${opt_log}" ] && trace "See rsync log in ${LOG}"
+    [ -n "${opt_log}" ] && msg "See rsync log in ${LOG}"
     
     error "SD Image backup process interrupted"
 }
 
-#----------------------------------------------------------------------------------------------------
 # Prints usage information
-#----------------------------------------------------------------------------------------------------
 usage () {
-
 cat<<EOF    
     ${MYNAME}
     
@@ -328,7 +295,6 @@ cat<<EOF
     
             ${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'
             ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
-            ${BOLD}umount${NOATT}     unmounts the 'sdimage'
             ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz (only useful for archiving the image)
             ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
             ${BOLD}showdf${NOATT}     shows allocation of the image
@@ -344,7 +310,7 @@ cat<<EOF
             ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
             ${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)
             ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)
-            ${BOLD}-r Mb${NOATT}      the image will be resized by this value         
+	        ${BOLD}-r Mb${NOATT}      the image will be resized by this value 		
     
     Examples:
     
@@ -358,12 +324,12 @@ cat<<EOF
         ${MYNAME} start /path/to/\$(uname -n).img
             uses the RPi's hostname as the SD Image filename
     
-        ${MYNAME} resize  /path/to/rpi_backup.img
+	    ${MYNAME} resize  /path/to/rpi_backup.img
             expand rpi_backup.img by 1000M
-            
-        ${MYNAME} resize -s 2000 /path/to/rpi_backup.img
+			
+		${MYNAME} resize -s 2000 /path/to/rpi_backup.img
             expand rpi_backup.img by 2000M
-            
+			
         ${MYNAME} mount /path/to/\$(uname -n).img /mnt/rpi_image
             mounts the RPi's SD Image in /mnt/rpi_image
 
@@ -374,15 +340,27 @@ EOF
 # Main
 #####################################################################################################
 
-setup
+# Make sure we have root rights
+if [ $(id -u) -ne 0 ]; then
+    error "Please run as root. Try sudo."
+fi
 
-#----------------------------------------------------------------------------------------------------
+#
+# Check for dependencies
+#
+for c in dd losetup parted sfdisk partx mkfs.vfat mkfs.ext4 mountpoint rsync
+do
+    command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
+done
+
+
+
 # Read the command from command line
-#----------------------------------------------------------------------------------------------------
 case "${1}" in
     
     start|mount|umount|gzip|chbootenv|showdf|resize) opt_command=${1}
     ;;
+        
         
     -h|--help)
         usage
@@ -394,9 +372,9 @@ case "${1}" in
 esac
 shift 1
 
-#----------------------------------------------------------------------------------------------------
+
+
 # Read the options from command line
-#----------------------------------------------------------------------------------------------------
 while getopts ":czdflL:i:r:s:" opt; do
     case ${opt} in
         c)  opt_create=1;;
@@ -407,8 +385,7 @@ while getopts ":czdflL:i:r:s:" opt; do
         L)  opt_log=1
             LOG=${OPTARG};;
         i)  SDCARD=${OPTARG};;
-        r)  RSIZE=${OPTARG:-1000}
-            BLOCKSIZE=1M ;;
+		r)  RSIZE=${OPTARG};;
         s)  SIZE=${OPTARG}
             BLOCKSIZE=1M ;;
         \?) error "Invalid option: -${OPTARG}\nSee '${MYNAME} --help' for usage";;
@@ -416,19 +393,13 @@ while getopts ":czdflL:i:r:s:" opt; do
     esac
 done
 shift $((OPTIND-1))
-
-#----------------------------------------------------------------------------------------------------
-# Make sure we have root rights
-#----------------------------------------------------------------------------------------------------
-[ $(id -u) -ne 0 ] &&  error "Please run as root. Try sudo."
-
-#----------------------------------------------------------------------------------------------------
-# setting defaults
-# $SIZE is set to the last sector of the last partition
-#----------------------------------------------------------------------------------------------------
+#
+# setting defaults if -i or -s is ommitted
+#
 SDCARD=${SDCARD:-"/dev/mmcblk0"}
-BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)} || error "Could not determine blocksize of ${SDCARD}"
-SIZE=$(fdisk -l -o END ${SDCARD}|tail -1) || error "Could not determine size of ${SDCARD}"
+SIZE=${SIZE:-$(blockdev --getsz $SDCARD)}
+BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)}
+RSIZE=${RSIZE:-1000}
 
 case "${SDCARD}" in
     "/dev/mmc"*) SUFFIX="p";;
@@ -436,13 +407,12 @@ case "${SDCARD}" in
     "/dev/disk/by-id/"*) SUFFIX="-part";;
     *) SUFFIX="p";;
 esac
-#####################################################################################################
-# Preflight checks
-#####################################################################################################
 
-#----------------------------------------------------------------------------------------------------
-# Read the sdimage path from command line and check for existance
-#----------------------------------------------------------------------------------------------------
+# Preflight checks
+#
+# Read the sdimage path from command line
+#   and check for existance
+#
 IMAGE=${1}
 [ -z "${IMAGE}" ] && error "No sdimage specified"
 
@@ -454,31 +424,25 @@ else
         error "${IMAGE} does not exist\nUse -c to allow creation"
     fi
 fi
-#----------------------------------------------------------------------------------------------------
-# Check for dependencies
-#----------------------------------------------------------------------------------------------------
-for c in dd losetup parted sfdisk partx mkfs.vfat mkfs.ext4 mountpoint rsync
-do
-    command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
-done
 
-#----------------------------------------------------------------------------------------------------
-# Check for gzip if compression option is set
-#----------------------------------------------------------------------------------------------------
+#
+# Checks for compressing the image
+#
 if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
     for c in pv gzip
-    do
+	do
         command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
     done
-    
+	
     if [ -s "${IMAGE}".gz ] && [ ! -n "${opt_force}" ]; then
         error "${IMAGE}.gz already exists\nUse -f to force overwriting"
     fi
 fi
 
-#----------------------------------------------------------------------------------------------------
+
+#
 # Identify which loopback device to use
-#----------------------------------------------------------------------------------------------------
+#
 LOOPBACK=$(losetup -j "${IMAGE}" | grep -o ^[^:]*)
 if [ ${opt_command} = umount ]; then
     [ -z ${LOOPBACK} ] && error "No /dev/loop<X> attached to ${IMAGE}"
@@ -488,9 +452,9 @@ else
     LOOPBACK=$(losetup -f)
 fi
 
-#----------------------------------------------------------------------------------------------------
+#
 # Read the optional mountdir from command line
-#----------------------------------------------------------------------------------------------------
+#
 MOUNTDIR=${2}
 if [ -z ${MOUNTDIR} ]; then
     MOUNTDIR=/mnt/$(basename "${IMAGE}")/
@@ -508,21 +472,21 @@ else
     fi
 fi
 
-#####################################################################################################
+#
 #  All preflight checks done
-#####################################################################################################
+#
 
-#----------------------------------------------------------------------------------------------------
+#####################################################################################################
+#
 # Trap keyboard interrupt (ctrl-c)
-#----------------------------------------------------------------------------------------------------
+
 trap ctrl_c SIGINT SIGTERM
 
-#----------------------------------------------------------------------------------------------------
+
 # Do the requested functionality
-#----------------------------------------------------------------------------------------------------
 case ${opt_command} in
     start)
-            trace "Starting SD Image backup process"
+            msg "Starting SD Image backup process"
             if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
                 do_create
             fi
@@ -531,20 +495,24 @@ case ${opt_command} in
             change_bootenv 
             do_showdf
             do_umount
-            [ -n "${opt_compress}" ] && do_compress
-            success "SD Image backup process completed."
-            [ -n "${opt_log}" ] && trace "See rsync log in ${LOG}"
+            if [ -n "${opt_compress}" ]; then
+                do_compress
+            fi
+            msgok "SD Image backup process completed."
+            if [ -n "${opt_log}" ]; then
+                msg "See rsync log in ${LOG}"
+            fi
             ;;
     mount)
             if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
                 do_create
             fi
             do_mount
-            success "SD Image has been mounted and can be accessed at:\n    ${MOUNTDIR}"
+            msgok "SD Image has been mounted and can be accessed at:\n    ${MOUNTDIR}"
             ;;
-    umount)
-            do_umount
-            ;;
+	umount)
+			do_umount
+			;;
     gzip)
             do_compress
             ;;

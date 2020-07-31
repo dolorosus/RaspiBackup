@@ -20,69 +20,65 @@
 #
 #
 
-[ -f ./COLORS.sh ] && . ./COLORS.sh
+[ -f ./COLORS.sh ] && source ./COLORS.sh
 
-setup () {
-		
-	export stamp=$(date +%y%m%d_%H%M%S)
-	export destvol="/mnt/USB64"
-	export destpath="${destvol}/BACKUPS" 
-	export snappath="${destvol}/.snapshots/BACKUPS"
-	export destpatt="MyRaspi-2*_[0-9]*.img"
-	export bcknewname="MyRaspi-${stamp}.img"
-	export tmppre="\#"
+export stamp=$(date +%y%m%d_%H%M%S)
+export destvol="/mnt/USB64"
+export destpath="${destvol}/BACKUPS" 
+export snappath="${destvol}/.snapshots/BACKUPS"
+export destpatt="MyRaspi-2*_[0-9]*.img"
+export bcknewname="MyRaspi-${stamp}.img"
+export tmppre="\#"
 
-	
-	export bckscript="/home/pi/scripts/RaspiBackup.sh"
-	export snapscript="/home/pi/scripts/btrfs-snapshot-rotation.sh"
-	export mark="manual"
-	export versions=28
-	#
-	# adapt according to your needs
-	#
-	export prog='mysql pihole-FTL lighttpd syncthing@pi docker containerd lightdm log2ram cockpit mattermost'
-}
+export bckscript="/home/pi/scripts/RaspiBackup.sh"
+export snapscript="/home/pi/scripts/btrfs-snapshot-rotation.sh"
+export mark="manual"
+export versions=28
+#
+# adapt according to your needs
+#
+export prog='mysql pihole-FTL lighttpd syncthing@pi docker containerd lightdm log2ram cockpit mattermost'
 
 
 msg () {
-	echo "${INFO} ${YELLOW}${1}${NOATT}"
+	echo "${IDENT} ${1}${NOATT}"
 }
 msgok () {
-	echo "${TICK} ${YELLOW}${1}${NOATT}"
+	echo "${TICK} ${1}${NOATT}"
 }
 
 errexit () {
 	
 	case "${1}" in
-		1)	echo "${CROSS}${RED} You have to be root to run this script${NOATT}"
+		1)	echo "${CROSS} You have to be root to run this script${NOATT}"
 			exit ${1};;
 				
-		10)	echo "${CROSS}${RED} More than one backupfile according to ${destpath}/${destpatt} found."
+		10)	echo "${CROSS} More than one backupfile according to ${destpath}/${destpatt} found."
 			echo "Can't decide which one to use.${NOATT}"
 			exit ${1};;
 
-		11)	echo "${CROSS}${RED} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
+		11)	echo "${CROSS} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
 			exit ${1};;
 
-		12)	echo "${CROSS}${RED} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
+		12)	echo "${CROSS}} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
 			exit ${1};;
         
-		20)	echo "${CROSS}${RED} No executable file $bckscript found.${NOATT}"
+		20)	echo "${CROSS} No executable file $bckscript found.${NOATT}"
 			exit ${1};;
 
-		21)	echo "${CROSS}${RED} No executable file $snapscript found.${NOATT}"
+		21)	echo "${CROSS} No executable file $snapscript found.${NOATT}"
 			exit ${1};;
 			
 		25)	echo "${TICK} ${YELLOW}${action} $prog failed${NOATT}"
 			;;
 			
-		30) echo "${RED}something went wrong..."
+		30) echo "${TICK}vsomething went wrong..."
 			echo "the incomplete backupfile is named: ${destpath}/${tmppre}${bcknewname}"
 			echo "Resolve the issue, rename the the backupfile and restart"
 			echo "Good luck!${NOATT}"
 			exit ${1};;
 			
-		*)	echo "${RED}An unknown error occured${NOATT}" 
+		*)	echo "${TICK} An unknown error occured${NOATT}" 
 			exit 99;;
 	esac
 }
@@ -93,6 +89,7 @@ progs () {
 	local setopt=$-
 
 	set +e
+	msg "${1}ing services"
 	systemctl ${action} ${prog} >/dev/null 2>&1
 	[ -z "${setopt##*e*}" ] && set -e
 	
@@ -118,7 +115,7 @@ do_inital_backup () {
 
 	progs start
 
-	  [ ${backup} = "ok" ] && return 0
+	[ ${backup} = "ok" ] && return 0
 	errexit 30
 }
 
@@ -132,14 +129,14 @@ do_backup () {
 	# move the destination to a temporary filename while 
 	# the backup is working
 	[ -z "${creopt}" ] && {	
-	msg "moving ${bckfile} to ${destpath}/#${bcknewname}"
+	msg "Moving ${bckfile} to ${destpath}/#${bcknewname}"
 	mv "${bckfile}" "${destpath}/#${bcknewname}"
 	}
-	msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
+	msg "Starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
 	backup="ko"
 	$bckscript start ${creopt} "${destpath}/#${bcknewname}"  && {
 		backup="ok"
-		msg "moving  ${destpath}/#${bcknewname} to ${destpath}/${bcknewname}"
+		msg "Moving  ${destpath}/#${bcknewname} to ${destpath}/${bcknewname}"
 		mv "${destpath}/#${bcknewname}" "${destpath}/${bcknewname}"
 		msgok "Backup successful"
 	 	msg "Backupfile is_: ${destpath}/${bcknewname}"  
@@ -148,8 +145,8 @@ do_backup () {
 	progs start
 
 	[ ${backup} = "ok" ] && return 0
-  	errexit 30
-  
+	errexit 30
+
 }
 
 # ===============================================================================================================
@@ -176,7 +173,7 @@ set -e
 }
 
 #
-# some checks 
+msg "some checks" 
 #
 [ "$(ls -1 ${destpath}/${destpatt}|wc -l)" == "1" ] || errexit 10
 
@@ -185,28 +182,29 @@ bckfile="$(ls -1 ${destpath}/${destpatt})"
 [ -s "${bckfile}" ] || errexit 12
 
 #
-# some more checks...
+msg "some more checks..."
 #
 [ -x "${bckscript}" ] || errexit 20
 [ -x "${snapscript}" ] || errexit 21
 
+msgok "All preflight checks ok"
 #
-# create a snapshot of current state
+msg "Create a snapshot of current backupfile and delete oldest snapshot"
 #
 ${snapscript}  ${destpath} ${destvol}/.snapshots/BACKUPS ${mark} ${versions}
 
 #
-# Rotate the logfiles
+msg "Rotate the logfiles"
 #
 logrotate  -f /etc/logrotate.conf
 
 #
-# finally do the backup
+msg "Finally start the backup"
 #
 do_backup
 
 #
-# All's Well That Ends Well
+msgok "All's Well That Ends Well"
 #
 exit 0
 # ===============================================================================================================
