@@ -95,7 +95,7 @@ change_bootenv () {
 		srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}${SUFFIX}${p}") || {
 			msg "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
 			editmanual=true
-		}
+			}
 
 		dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
 			msg "Could not find PARTUUID of ${LOOPBACK}p${p}"
@@ -248,7 +248,7 @@ do_resize () {
 	msg "expanding filesystem"
 	e2fsck -f ${LOOPBACK}p2
 	resize2fs ${LOOPBACK}p2
-	
+
 	msg "Detaching ${IMAGE} from ${LOOPBACK}"
 	partx --delete ${LOOPBACK}
 	losetup -d ${LOOPBACK}
@@ -266,6 +266,7 @@ do_compress () {
 
 # Tries to cleanup after Ctrl-C interrupt
 ctrl_c () {
+
 	msg "Ctrl-C detected."
 
 	if [ -s "${IMAGE}.gz.tmp" ]; then
@@ -360,15 +361,15 @@ case "${1}" in
 	
 	start|mount|umount|gzip|chbootenv|showdf|resize) opt_command=${1}
 	;;
-		
-		
+	
 	-h|--help)
 		usage
 		exit 0
-		;;
+	;;
+
 	*)
 		error "Invalid command or option: ${1}\nSee '${MYNAME} --help for usage"
-		;;
+	;;
 esac
 shift 1
 
@@ -486,52 +487,58 @@ trap ctrl_c SIGINT SIGTERM
 # Do the requested functionality
 case ${opt_command} in
 	start)
-			msg "Starting SD Image backup process"
-			if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
-				do_create
-			fi
-			do_mount
-			do_backup
-			change_bootenv 
-			do_showdf
-			do_umount
-			if [ -n "${opt_compress}" ]; then
-				do_compress
-			fi
-			msgok "SD Image backup process completed."
-			if [ -n "${opt_log}" ]; then
-				msg "See rsync log in ${LOG}"
-			fi
-			;;
-	mount)
-			if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
-				do_create
-			fi
-			do_mount
-			msgok "SD Image has been mounted and can be accessed at:\n    ${MOUNTDIR}"
-			;;
-	umount)
-			do_umount
-			;;
-	gzip)
+		msg "Starting SD Image backup process"
+		if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
+			do_create
+		fi
+		do_mount
+		do_backup
+		change_bootenv 
+		do_showdf
+		do_umount
+		if [ -n "${opt_compress}" ]; then
 			do_compress
-			;;
+		fi
+		msgok "SD Image backup process completed."
+		if [ -n "${opt_log}" ]; then
+			msg "See rsync log in ${LOG}"
+		fi
+	;;
+
+	mount)
+		if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
+			do_create
+		fi
+		do_mount
+		msgok "SD Image has been mounted and can be accessed at:\n    ${MOUNTDIR}"
+	;;
+	umount)
+		do_umount
+	;;
+
+	gzip)
+		do_compress
+	;;
 
 	chbootenv)
-			do_mount
-			change_bootenv
-			do_umount
-			;;
+		do_mount
+		change_bootenv
+		do_umount
+	;;
+
 	showdf)
-			do_mount
-			do_showdf
-			do_umount
-			;;
+		do_mount
+		do_showdf
+		do_umount
+	;;
+
 	resize)
-			do_resize $RSIZE;;
+		do_resize $RSIZE
+	;;
+
 	*)
-			error "Unknown command: ${opt_command}"
-			;;
+		error "Unknown command: ${opt_command}"
+	;;
 esac
 
 exit 0
