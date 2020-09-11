@@ -27,10 +27,10 @@
 	NOATT=""
 }
 
-TICK="[${GREEN}✓${NOATT}]${GREEN}"
-CROSS="[${RED}✗${NOATT}]${RED}"
-INFO="[i]${NOATT}"
-WARN="[${YELLOW}w${NOATT}]${YELLOW}"
+TICK="${NOATT}[${GREEN}✓${NOATT}]${GREEN}"
+CROSS="${NOATT}[${RED}✗${NOATT}]${RED}"
+INFO="[I]${NOATT}"
+WARN="${NOATT}[${YELLOW}W${NOATT}]${YELLOW}"
 QST="[?]"
 IDENT="${NOATT}   "
 
