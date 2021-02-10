@@ -176,6 +176,31 @@ do_mount () {
     mount ${LOOPBACK}p1 ${MOUNTDIR}/boot
 }
 
+
+do_check () {
+    # Check if do_create already attached the SD Image
+    [ $(losetup -f) = ${LOOPBACK} ] && {
+        msg "Attaching ${IMAGE} to ${LOOPBACK}"
+        losetup ${LOOPBACK} "${IMAGE}"
+        partx --add ${LOOPBACK}
+    }
+    
+    fsck -y ${LOOPBACK}p1 || {
+        msgwarn "Checking /boot returned_:$err"
+        return 1
+    }
+    
+    fsck -y ${LOOPBACK}p2 || {
+        msgwarn "Checking / returned_:$err"
+        return 2
+    }
+    
+    msg "Detaching ${IMAGE} from ${LOOPBACK}"
+    partx --delete ${LOOPBACK}
+    losetup -d ${LOOPBACK}
+}
+
+
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
 do_backup () {
     
@@ -235,6 +260,8 @@ do_umount () {
 do_resize () {
     local SIZE=${1:-1000}
     
+    do_check || error "Filesystemcheck failed. Resize aborted."
+    
     do_umount >/dev/null 2>&1
     
     msg "increasing size of ${IMAGE} by ${SIZE}M"
@@ -266,7 +293,6 @@ do_compress () {
 
 # Tries to cleanup after Ctrl-C interrupt
 ctrl_c () {
-    
     msg "Ctrl-C detected."
     
     if [ -s "${IMAGE}.gz.tmp" ]; then
@@ -283,56 +309,59 @@ ctrl_c () {
 # Prints usage information
 usage () {
 cat<<EOF
-	${MYNAME}
+    ${MYNAME}
 
-	Usage:
+    Usage:
 
-		${MYNAME} ${BOLD}start${NOATT} [-clzdf] [-L logfile] [-i sdcard] sdimage
-		${MYNAME} ${BOLD}mount${NOATT} [-c] sdimage [mountdir]
-		${MYNAME} ${BOLD}umount${NOATT} sdimage [mountdir]
-		${MYNAME} ${BOLD}gzip${NOATT} [-df] sdimage
+        ${MYNAME} ${BOLD}start${NOATT} [-clzdf] [-L logfile] [-i sdcard] sdimage
+        ${MYNAME} ${BOLD}mount${NOATT} [-c] sdimage [mountdir]
+        ${MYNAME} ${BOLD}umount${NOATT} sdimage [mountdir]
+        ${MYNAME} ${BOLD}check${NOATT} sdimage
+        ${MYNAME} ${BOLD}gzip${NOATT} [-df] sdimage
 
-		Commands:
+        Commands:
 
-			${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'
-			${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
-			${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz (only useful for archiving the image)
-			${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
-			${BOLD}showdf${NOATT}     shows allocation of the image
-			${BOLD}resize${NOATT}     expand the image
+            ${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'
+            ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
+            ${BOLD}mount${NOATT}      unmounts the 'sdimage' from 'mountdir'
+            ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz (only useful for archiving the image)
+            ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
+            ${BOLD}showdf${NOATT}     shows allocation of the image
+            ${BOLD}check${NOATT}      check the filesystems of sdimage
+            ${BOLD}resize${NOATT}     expand the image
 
-		Options:
+        Options:
 
-			${BOLD}-c${NOATT}         creates the SD Image if it does not exist
-			${BOLD}-l${NOATT}         writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
-			${BOLD}-z${NOATT}         compresses the SD Image (after backup) to 'sdimage'.gz
-			${BOLD}-d${NOATT}         deletes the SD Image after successful compression
-			${BOLD}-f${NOATT}         forces overwrite of 'sdimage'.gz if it exists
-			${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
-			${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)
-			${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)
-			${BOLD}-r Mb${NOATT}      the image will be resized by this value
+            ${BOLD}-c${NOATT}         creates the SD Image if it does not exist
+            ${BOLD}-l${NOATT}         writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
+            ${BOLD}-z${NOATT}         compresses the SD Image (after backup) to 'sdimage'.gz
+            ${BOLD}-d${NOATT}         deletes the SD Image after successful compression
+            ${BOLD}-f${NOATT}         forces overwrite of 'sdimage'.gz if it exists
+            ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
+            ${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)
+            ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)
+            ${BOLD}-r Mb${NOATT}      the image will be resized by this value
 
-	Examples:
+    Examples:
 
-		${MYNAME} start -c /path/to/rpi_backup.img
-			starts backup to 'rpi_backup.img', creating it if it does not exist
+        ${MYNAME} start -c /path/to/rpi_backup.img
+            starts backup to 'rpi_backup.img', creating it if it does not exist
 
-		${MYNAME} start -c -s 8000 /path/to/rpi_backup.img
-			starts backup to 'rpi_backup.img', creating it
-			with a size of 8000mb if it does not exist
+        ${MYNAME} start -c -s 8000 /path/to/rpi_backup.img
+            starts backup to 'rpi_backup.img', creating it
+            with a size of 8000mb if it does not exist
 
-		${MYNAME} start /path/to/\$(uname -n).img
-			uses the RPi's hostname as the SD Image filename
+        ${MYNAME} start /path/to/\$(uname -n).img
+            uses the RPi's hostname as the SD Image filename
 
-		${MYNAME} resize  /path/to/rpi_backup.img
-			expand rpi_backup.img by 1000M
+        ${MYNAME} resize  /path/to/rpi_backup.img
+            expand rpi_backup.img by 1000M
 
-		${MYNAME} resize -s 2000 /path/to/rpi_backup.img
-			expand rpi_backup.img by 2000M
+        ${MYNAME} resize -s 2000 /path/to/rpi_backup.img
+            expand rpi_backup.img by 2000M
 
-		${MYNAME} mount /path/to/\$(uname -n).img /mnt/rpi_image
-			mounts the RPi's SD Image in /mnt/rpi_image
+        ${MYNAME} mount /path/to/\$(uname -n).img /mnt/rpi_image
+            mounts the RPi's SD Image in /mnt/rpi_image
 
 EOF
 }
@@ -359,14 +388,14 @@ done
 # Read the command from command line
 case "${1}" in
     
-    start|mount|umount|gzip|chbootenv|showdf|resize) opt_command=${1}
+    start|mount|umount|check|gzip|chbootenv|showdf|resize) opt_command=${1}
     ;;
+    
     
     -h|--help)
         usage
         exit 0
     ;;
-    
     *)
         error "Invalid command or option: ${1}\nSee '${MYNAME} --help for usage"
     ;;
@@ -393,7 +422,6 @@ while getopts ":czdflL:i:r:s:" opt; do
         :)  error "Option -${OPTARG} requires an argument\nSee '${MYNAME} --help' for usage";;
     esac
 done
-
 shift $((OPTIND-1))
 #
 # setting defaults if -i or -s is ommitted
@@ -440,6 +468,7 @@ if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
         error "${IMAGE}.gz already exists\nUse -f to force overwriting"
     fi
 fi
+
 
 #
 # Identify which loopback device to use
@@ -504,7 +533,6 @@ case ${opt_command} in
             msg "See rsync log in ${LOG}"
         fi
     ;;
-    
     mount)
         if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
             do_create
@@ -515,7 +543,9 @@ case ${opt_command} in
     umount)
         do_umount
     ;;
-    
+    check)
+        do_check
+    ;;
     gzip)
         do_compress
     ;;
@@ -525,17 +555,13 @@ case ${opt_command} in
         change_bootenv
         do_umount
     ;;
-    
     showdf)
         do_mount
         do_showdf
         do_umount
     ;;
-    
     resize)
-        do_resize $RSIZE
-    ;;
-    
+    do_resize $RSIZE;;
     *)
         error "Unknown command: ${opt_command}"
     ;;
