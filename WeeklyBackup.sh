@@ -176,7 +176,7 @@ set -e
 }
 
 #
-[ ${skipcheck} == "check" ] && {
+[ ${skipcheck} == "noskip" ] && {
 	msg "some checks" 
 	msg "get devicename for ${destvol}"
 	destdev=$(grep "${destvol}" /etc/mtab| cut -d \   -f 1)
