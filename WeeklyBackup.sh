@@ -110,7 +110,7 @@ do_inital_backup () {
 
     msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
     backup="ko"
-    $bckscript start ${creopt} "${destpath}/#${bcknewname}" && {
+    $bckscript start ${creopt} "${destpath}/${tmppre}${bcknewname}" && {
         msg "moving  ${destpath}/${tmppre}bcknewname} to ${destpath}/${bcknewname}"
         mv "${destpath}/${tmppre}${bcknewname}" "${destpath}/${bcknewname}"  
         msgok "Backup successful"
@@ -133,8 +133,8 @@ do_backup () {
     # move the destination to a temporary filename while 
     # the backup is working
     [ -z "${creopt}" ] && {	
-    msg "Moving ${bckfile} to ${destpath}/#${bcknewname}"
-    mv "${bckfile}" "${destpath}/#${bcknewname}"
+    msg "Moving ${bckfile} to ${destpath}/${tmppre}${bcknewname}"
+    mv "${bckfile}" "${destpath}/${tmppre}${bcknewname}"
     }
     msg "Starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
     backup="ko"
