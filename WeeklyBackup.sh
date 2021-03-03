@@ -20,6 +20,8 @@
 #
 #
 
+exec &> >(tee "${0}.out")
+
 
 setup() 
 {
