@@ -55,26 +55,26 @@ msgok () {
 errexit () {
     
     case "${1}" in
-        1)	echo "${CROSS} You have to be root to run this script${NOATT}"
+        1)  echo "${CROSS} You have to be root to run this script${NOATT}"
             exit ${1};;
                 
-        10)	echo "${CROSS} More than one backupfile according to ${destpath}/${destpatt} found."
+        10) echo "${CROSS} More than one backupfile according to ${destpath}/${destpatt} found."
             echo "Can't decide which one to use.${NOATT}"
             exit ${1};;
 
-        11)	echo "${CROSS} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
+        11) echo "${CROSS} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
             exit ${1};;
 
-        12)	echo "${CROSS}} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
+        12) echo "${CROSS}} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
             exit ${1};;
         
-        20)	echo "${CROSS} No executable file $bckscript found.${NOATT}"
+        20) echo "${CROSS} No executable file $bckscript found.${NOATT}"
             exit ${1};;
 
-        21)	echo "${CROSS} No executable file $snapscript found.${NOATT}"
+        21) echo "${CROSS} No executable file $snapscript found.${NOATT}"
             exit ${1};;
             
-        25)	echo "${TICK} ${YELLOW}${action} $prog failed${NOATT}"
+        25) echo "${TICK} ${YELLOW}${action} $prog failed${NOATT}"
             ;;
             
         30) echo "${TICK}vsomething went wrong..."
@@ -83,7 +83,7 @@ errexit () {
             echo "Good luck!${NOATT}"
             exit ${1};;
             
-        *)	echo "${TICK} An unknown error occured${NOATT}" 
+        *)  echo "${TICK} An unknown error occured${NOATT}" 
             exit 99;;
     esac
 }
