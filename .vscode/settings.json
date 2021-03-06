@@ -1,4 +1,5 @@
 {
     "telemetry.enableTelemetry": false,
-    "editor.insertSpaces": false
+    "editor.insertSpaces": false,
+    "editor.quickSuggestionsDelay": 100
 }
