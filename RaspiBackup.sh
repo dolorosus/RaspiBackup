@@ -371,7 +371,7 @@ EOF
 #####################################################################################################
 
 # Make sure we have root rights
-if [ $(id -u) -ne 0 ]; then
+if [[ $EUID != 0 ]]; then
     error "Please run as root. Try sudo."
 fi
 
@@ -401,8 +401,6 @@ case "${1}" in
     ;;
 esac
 shift 1
-
-
 
 # Read the options from command line
 while getopts ":czdflL:i:r:s:" opt; do
@@ -463,7 +461,7 @@ if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
     do
         command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
     done
-    
+
     if [ -s "${IMAGE}".gz ] && [ ! -n "${opt_force}" ]; then
         error "${IMAGE}.gz already exists\nUse -f to force overwriting"
     fi
