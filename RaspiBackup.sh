@@ -43,20 +43,20 @@ error () {
 
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create () {
-    
+
     BOOTSIZE=${BOOTSIZE:-250}
-    
-    
+
+
     msg "Creating sparse "${IMAGE}", the apparent size of $SDCARD"
     dd if=/dev/zero of="${IMAGE}" bs=${BLOCKSIZE} count=0 seek=${SIZE}
-    
+
     if [ -s "${IMAGE}" ]; then
         msg "Attaching "${IMAGE}" to ${LOOPBACK}"
         losetup ${LOOPBACK} "${IMAGE}"
     else
         error "${IMAGE} has not been created or has zero size"
     fi
-    
+
     msg "Creating partitions on ${LOOPBACK}"
     parted -s ${LOOPBACK} mktable msdos
     parted -s ${LOOPBACK} mkpart primary fat32 4MiB ${BOOTSIZE}MiB
@@ -65,38 +65,34 @@ do_create () {
     partx --add ${LOOPBACK}
     mkfs.vfat -n BOOT -F32 ${LOOPBACK}p1
     mkfs.ext4 ${LOOPBACK}p2
-    
+
 }
 
 change_bootenv () {
-    
+
     declare -a srcpartuuid
     declare -a dstpartuuid
-    
-    local partcnt
-    local editmanual
+
+    local editmanual=false
+    local fstab_tmp=/tmp/fstab
     local part
-    local fstab_tmp
-    
-    editmanual=false
-    
+    local partcnt
+
     #
     # create a working copy of /etc/fstab
     #
-    fstab_tmp=/tmp/fstab
     cp /etc/fstab $fstab_tmp
-    
     #
     # assuming we have two partitions (/boot and /)
     #
-    
+
     for ((p = 1; p <= 2; p++))
     do
         srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}${SUFFIX}${p}") || {
             msg "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
             editmanual=true
         }
-        
+
         dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
             msg "Could not find PARTUUID of ${LOOPBACK}p${p}"
             editmanual=true
@@ -111,12 +107,11 @@ change_bootenv () {
                 msgwarn "PARTUUID ${dstpartuuid[2]} has not been changed in  $fstab_tmp"
                 editmanual=true
             }
-            
+
             }||{
             msgwarn "PARTUUID=${srcpartuuid[${p}]} not found in $fstab_tmp"
             editmanual=true
         }
-        
     done
     #
     # Something went wrong automatically changing wasn't possible
@@ -129,7 +124,7 @@ change_bootenv () {
         cp $fstab_tmp ${MOUNTDIR}/etc/fstab
         msgok "PARTUUIDs changed successful in fstab"
     fi
-    
+
     #
     # Changing /boot/cmdline.txt
     #
@@ -149,7 +144,7 @@ change_bootenv () {
         msgwarn "PARTUUID ${srcpartuuid[2]} not found in  $cmdline_tmp"
         editmanual=true
     }
-    
+
     if ${editmanual}
     then
         msgwarn "cmdline.txt cannot be changed automatically."
@@ -162,13 +157,14 @@ change_bootenv () {
 
 # Mounts the ${IMAGE} to ${LOOPBACK} (if needed) and ${MOUNTDIR}
 do_mount () {
+
     # Check if do_create already attached the SD Image
     [ $(losetup -f) = ${LOOPBACK} ] && {
         msg "Attaching ${IMAGE} to ${LOOPBACK}"
         losetup ${LOOPBACK} "${IMAGE}"
         partx --add ${LOOPBACK}
     }
-    
+
     msg "Mounting ${LOOPBACK}p1 and ${LOOPBACK}p2 to ${MOUNTDIR}"
     [ -n "${opt_mountdir}" ] || mkdir ${MOUNTDIR}
     mount ${LOOPBACK}p2 ${MOUNTDIR}
@@ -178,37 +174,44 @@ do_mount () {
 
 
 do_check () {
+
+    local err
+
     # Check if do_create already attached the SD Image
     [ $(losetup -f) = ${LOOPBACK} ] && {
         msg "Attaching ${IMAGE} to ${LOOPBACK}"
         losetup ${LOOPBACK} "${IMAGE}"
         partx --add ${LOOPBACK}
     }
-    
+
+    err=0
+
     fsck -y ${LOOPBACK}p1 || {
-        msgwarn "Checking /boot returned_:$err"
-        return 1
+        msgwarn "Checking /boot failed"
+        err=1
     }
-    
+
     fsck -y ${LOOPBACK}p2 || {
-        msgwarn "Checking / returned_:$err"
-        return 2
+        msgwarn "Checking / failed"
+        err=2
     }
-    
+
     msg "Detaching ${IMAGE} from ${LOOPBACK}"
     partx --delete ${LOOPBACK}
     losetup -d ${LOOPBACK}
+
+    return ${err}
 }
 
 
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
 do_backup () {
-    
+
     local rsyncopt
-    
+
     rsyncopt="-aEvx --del --stats"
     [ -n "${opt_log}" ] && rsyncopt="$rsyncopt --log-file ${LOG}"
-    
+
     if mountpoint -q ${MOUNTDIR}; then
         msg "Starting rsync backup of / and /boot/ to ${MOUNTDIR}"
         msg "rsync /boot/ ${MOUNTDIR}/boot/"
@@ -225,30 +228,32 @@ do_backup () {
         --exclude='var/swap ' \
         --exclude='home/*/.cache/**' \
         --exclude='var/cache/apt/archives/**' \
+        --exclude='var/lib/docker/' \
+        --exclude='var/lib/containerd/' \
         / ${MOUNTDIR}/
-        
+
     else
         msg "Skipping rsync since ${MOUNTDIR} is not a mount point"
     fi
 }
 
 do_showdf () {
-    
-    echo -n "${NOATT}"
+
+    msg ""
     df -m ${LOOPBACK}p1 ${LOOPBACK}p2
-    echo ""
+    msg ""
 }
 
 # Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
 do_umount () {
     msg "Flushing to disk"
     sync; sync
-    
+
     msg "Unmounting ${LOOPBACK}p1 and ${LOOPBACK}p2 from ${MOUNTDIR}"
     umount ${MOUNTDIR}/boot
     umount ${MOUNTDIR}
     [ -n "${opt_mountdir}" ] || rmdir ${MOUNTDIR}
-    
+
     msg "Detaching ${IMAGE} from ${LOOPBACK}"
     partx --delete ${LOOPBACK}
     losetup -d ${LOOPBACK}
@@ -259,23 +264,23 @@ do_umount () {
 #
 do_resize () {
     local SIZE=${1:-1000}
-    
+
     do_check || error "Filesystemcheck failed. Resize aborted."
-    
+
     do_umount >/dev/null 2>&1
-    
+
     msg "increasing size of ${IMAGE} by ${SIZE}M"
     truncate --size=+${SIZE}M "${IMAGE}" || error "Error adding ${SIZE}M to ${IMAGE}"
-    
+
     losetup ${LOOPBACK} "${IMAGE}"
     msg "resize partition 2 of ${IMAGE}"
     parted -s ${LOOPBACK} resizepart 2 100%
     partx --add ${LOOPBACK}
-    
+
     msg "expanding filesystem"
     e2fsck -f ${LOOPBACK}p2
     resize2fs ${LOOPBACK}p2
-    
+
     msg "Detaching ${IMAGE} from ${LOOPBACK}"
     partx --delete ${LOOPBACK}
     losetup -d ${LOOPBACK}
@@ -294,15 +299,15 @@ do_compress () {
 # Tries to cleanup after Ctrl-C interrupt
 ctrl_c () {
     msg "Ctrl-C detected."
-    
+
     if [ -s "${IMAGE}.gz.tmp" ]; then
         rm "${IMAGE}.gz.tmp"
     else
         do_umount
     fi
-    
+
     [ -n "${opt_log}" ] && msg "See rsync log in ${LOG}"
-    
+
     error "SD Image backup process interrupted"
 }
 
@@ -325,6 +330,7 @@ cat<<EOF
             ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
             ${BOLD}mount${NOATT}      unmounts the 'sdimage' from 'mountdir'
             ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz (only useful for archiving the image)
+                                      I would suggest PiShrink https://github.com/Drewsif/PiShrink.git
             ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
             ${BOLD}showdf${NOATT}     shows allocation of the image
             ${BOLD}check${NOATT}      check the filesystems of sdimage
@@ -341,6 +347,11 @@ cat<<EOF
             ${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)
             ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)
             ${BOLD}-r Mb${NOATT}      the image will be resized by this value
+
+    Note:
+            There are some excludes regarding docker. 
+            No docker image nor any docker container will be in the backup.
+            If you want to include them, delete the excludes for /var/libdocker and /var/lib/containerd
 
     Examples:
 
@@ -383,15 +394,13 @@ do
     command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
 done
 
-
-
 # Read the command from command line
 case "${1}" in
-    
+
     start|mount|umount|check|gzip|chbootenv|showdf|resize) opt_command=${1}
     ;;
-    
-    
+
+
     -h|--help)
         usage
         exit 0
@@ -507,7 +516,6 @@ fi
 #####################################################################################################
 #
 # Trap keyboard interrupt (ctrl-c)
-
 trap ctrl_c SIGINT SIGTERM
 
 
@@ -547,7 +555,7 @@ case ${opt_command} in
     gzip)
         do_compress
     ;;
-    
+
     chbootenv)
         do_mount
         change_bootenv
