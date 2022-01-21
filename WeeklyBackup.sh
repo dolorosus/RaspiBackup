@@ -68,7 +68,7 @@ errexit () {
         11) echo "${CROSS} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
             exit ${1};;
 
-        12) echo "${CROSS}} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
+        12) echo "${CROSS} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
             exit ${1};;
         
         20) echo "${CROSS} No executable file ${bckscript}found.${NOATT}"
