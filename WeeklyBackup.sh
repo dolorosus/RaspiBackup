@@ -8,17 +8,19 @@
 #	for the backupdestination. If BTRFS is used you may have a look to 
 #           https://github.com/dolorosus/btrfs-snapshot-rotation
 #
-#	After the snapshot is taken, most of the active services are shutdown.
-#	You should adapt the function *progs()* according to your needs.
+#	After the snapshot is taken, the system will be isolated to rescue mode.
+#   Thus results in:
+#       - you will be no longer able to login from ssh
+#       - existing login sessions remain unchanged. 
+#   
+#   Recommendation: use 'screen' or 'tmux' so that the backup will be finished
+#   even if the connection fails.
+#	
 #
 #	Also you should take a closer look to *setup()*. Change the variables according
 #	your filesystem structure.
 #
-#	2019-05-10	Comments
-#
-#	2019-04-30	initial commit by Dolorosus
-#
-#
+
 exec &> >(tee "${0}.out") 
 
 
@@ -93,12 +95,8 @@ progs () {
     local action=${1:=start}
     local setopt=$-
 
-    set +e
-    msg "${1}ing services"
-    systemctl ${action} ${prog} >/dev/null 2>&1
-    [ -z "${setopt##*e*}" ] && set -e
-    
-    [ "${action}" == "start" ] && pihole restartdns
+    [ "${action}" == "stop" ] && systemctl isolate rescue
+    [ "${action}" == "start" ] && systemctl isolate multi-user
   
     return 0	
 }
@@ -120,7 +118,7 @@ do_inital_backup () {
 
     progs start
 
-    [ ${backup} = "ok" ] && return 0
+    [ "${backup}" == "ok" ] && return 0
     errexit 30
 }
 
@@ -148,7 +146,7 @@ do_backup () {
   
     progs start
 
-    [ ${backup} = "ok" ] && return 0
+    [ "${backup}" == "ok" ] && return 0
     errexit 30
 
 }
@@ -166,9 +164,10 @@ setup
 #
 # Bailout in case of uncaught error
 #
-set -e
+set +e
 
 [ $(/usr/bin/id -u) == "0" ] || errexit 1
+
 [ "$(ls -1 ${destpath}/${destpatt}|wc -l)" == "0" ] && {
     progs stop
     do_inital_backup 
