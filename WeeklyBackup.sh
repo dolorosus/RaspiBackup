@@ -203,7 +203,7 @@ progs stop
     mount ${destdev} ${destvol}
 
     msg "verify block checksums on ${destvol}"
-    btrfs scrub start -B ${destvol}
+    btrfs scrub start --human-readable -B ${destvol}
 }
 
 [ "$(ls -1 ${destpath}/${destpatt}|wc -l)" == "1" ] || errexit 10
