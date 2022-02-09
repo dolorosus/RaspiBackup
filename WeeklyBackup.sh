@@ -47,10 +47,10 @@ setup()
 }
 
 msg () {
-    echo "${IDENT} ${1}${NOATT}"
+    echo "${IDENT}${MYNAME}  ${1}${NOATT}"
 }
 msgok () {
-    echo "${TICK} ${1}${NOATT}"
+    echo "${MYNAME}  ${TICK} ${1}${NOATT}"
 }
 
 [ -f ./COLORS.sh ] && source ./COLORS.sh
@@ -96,11 +96,11 @@ progs () {
     local setopt=$-
 
     [ "${action}" == "stop" ] && { 
-        msg "System is put to rescue mode."
+        msg "System is put into rescue mode."
         systemctl isolate rescue
     }
     [ "${action}" == "start" ] && {
-        msg "System is put to multi-user mode."
+        msg "System is put into multi-user mode."
         systemctl isolate multi-user
     }
     msg "waiting for ${grace}s"
