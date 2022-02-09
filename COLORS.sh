@@ -34,18 +34,19 @@ WARN="${NOATT}[${YELLOW}W${NOATT}]${YELLOW}"
 QST="[?]"
 IDENT="${NOATT}   "
 
-MYNAME=$(basename -- $0)
+MYNAME="${0##*/}"
+
 
 
 msgok () {
-    echo -e "${TICK} {1}${NOATT}\n"
+    echo -e "${MYNAME}  ${TICK} {1}${NOATT}\n"
 }
 msg () {
-    echo -e "${IDENT} ${1}${NOATT}"
+    echo -e "${MYNAME}  ${IDENT} ${1}${NOATT}"
 }
 msgwarn () {
-    echo -e "${WARN} ${1}${NOATT}"
+    echo -e "${MYNAME}  ${WARN} ${1}${NOATT}"
 }
 msgfail () {
-    echo -e "${CROSS} ${1}${NOATT}"
+    echo -e "${MYNAME}  ${CROSS} ${1}${NOATT}"
 }

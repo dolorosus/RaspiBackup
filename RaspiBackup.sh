@@ -25,13 +25,13 @@ BOOTSIZE=250
 
 # in case COLORS.sh is missing
 msgok () {
-    echo -e "${TICK} ${1}${NOATT}"
+    echo -e "${MYNAME}  ${TICK} ${1}${NOATT}"
 }
 msg () {
-    echo -e "${IDENT} ${1}${NOATT}"
+    echo -e "${MYNAME}  ${IDENT} ${1}${NOATT}"
 }
 msgwarn () {
-    echo -e "${WARN} ${1}${NOATT}"
+    echo -e "${MYNAME}  ${WARN} ${1}${NOATT}"
 }
 # Echos an error string in red text and exit
 error () {
@@ -263,6 +263,7 @@ do_umount () {
 # resize image
 #
 do_resize () {
+    
     local SIZE=${1:-1000}
 
     do_check || error "Filesystemcheck failed. Resize aborted."
@@ -382,9 +383,7 @@ EOF
 #####################################################################################################
 
 # Make sure we have root rights
-if [[ $EUID != 0 ]]; then
-    error "Please run as root. Try sudo."
-fi
+[ ${EUID} != 0 ] &&  error "Please run as root. Try sudo."
 
 #
 # Check for dependencies
@@ -531,13 +530,10 @@ case ${opt_command} in
         change_bootenv
         do_showdf
         do_umount
-        if [ -n "${opt_compress}" ]; then
-            do_compress
-        fi
+        [ -n "${opt_compress}" ] && do_compress
         msgok "SD Image backup process completed."
-        if [ -n "${opt_log}" ]; then
-            msg "See rsync log in ${LOG}"
-        fi
+        [ -n "${opt_log}" ] &&  msg "See rsync log in ${LOG}"
+
     ;;
     mount)
         if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
