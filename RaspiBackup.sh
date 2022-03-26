@@ -1,5 +1,5 @@
 #!/bin/bash
-#
+# 
 # Utility script to backup Raspberry Pi's SD Card to a sparse image file
 # mounted as a filesystem in a file, allowing for efficient incremental
 # backups using rsync
@@ -25,13 +25,13 @@ BOOTSIZE=250
 
 # in case COLORS.sh is missing
 msgok () {
-    echo -e "${MYNAME}  ${TICK} ${1}${NOATT}"
+    echo -e "${TICK} ${1}${NOATT}"
 }
 msg () {
-    echo -e "${MYNAME}  ${IDENT} ${1}${NOATT}"
+    echo -e "${IDENT} ${1}${NOATT}"
 }
 msgwarn () {
-    echo -e "${MYNAME}  ${WARN} ${1}${NOATT}"
+    echo -e "${WARN} ${1}${NOATT}"
 }
 # Echos an error string in red text and exit
 error () {
@@ -45,7 +45,6 @@ error () {
 do_create () {
 
     BOOTSIZE=${BOOTSIZE:-250}
-
 
     msg "Creating sparse "${IMAGE}", the apparent size of $SDCARD"
     dd if=/dev/zero of="${IMAGE}" bs=${BLOCKSIZE} count=0 seek=${SIZE}
@@ -263,7 +262,7 @@ do_umount () {
 # resize image
 #
 do_resize () {
-    
+
     local SIZE=${1:-1000}
 
     do_check || error "Filesystemcheck failed. Resize aborted."
@@ -383,7 +382,7 @@ EOF
 #####################################################################################################
 
 # Make sure we have root rights
-[ ${EUID} != 0 ] &&  error "Please run as root. Try sudo."
+[[ ${EUID} != 0 ]] && error "Please run as root. Try sudo."
 
 #
 # Check for dependencies
@@ -398,7 +397,6 @@ case "${1}" in
 
     start|mount|umount|check|gzip|chbootenv|showdf|resize) opt_command=${1}
     ;;
-
 
     -h|--help)
         usage
@@ -532,8 +530,8 @@ case ${opt_command} in
         do_umount
         [ -n "${opt_compress}" ] && do_compress
         msgok "SD Image backup process completed."
-        [ -n "${opt_log}" ] &&  msg "See rsync log in ${LOG}"
-
+        [ -n "${opt_log}" ] && msg "See rsync log in ${LOG}"
+        
     ;;
     mount)
         if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
