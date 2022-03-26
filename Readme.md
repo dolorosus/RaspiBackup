@@ -34,6 +34,7 @@ E.g.:
 * -i defines a different source device path instead of the default /dev/mmcblk0
 * -l writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
 * -z compresses the SD Image (after backup) to 'sdimage'.gz (deprecated)
+*    use pishrink instead.
 * -d deletes the SD Image after successful compression
 * -f forces overwrite of 'sdimage'.gz if it exists
 * -L logfile writes rsync log to 'logfile'
