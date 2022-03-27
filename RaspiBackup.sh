@@ -36,7 +36,7 @@ msgwarn () {
 # Echos an error string in red text and exit
 error () {
     echo -e "${CROSS} ${1}${NOATT}" >&2
-    exit 1
+    exit ${2:-1}
 }
 
 [ -f ./COLORS.sh ] && source ./COLORS.sh
