@@ -239,7 +239,7 @@ do_backup () {
 do_showdf () {
 
     msg ""
-    df -m ${LOOPBACK}p1 ${LOOPBACK}p2
+    df -mh ${LOOPBACK}p1 ${LOOPBACK}p2
     msg ""
 }
 
