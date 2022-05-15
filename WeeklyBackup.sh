@@ -8,17 +8,19 @@
 #	for the backupdestination. If BTRFS is used you may have a look to 
 #           https://github.com/dolorosus/btrfs-snapshot-rotation
 #
-#	After the snapshot is taken, most of the active services are shutdown.
-#	You should adapt the function *progs()* according to your needs.
+#	After the snapshot is taken, the system will be isolated to rescue mode.
+#   Thus results in:
+#       - you will be no longer able to login from ssh
+#       - existing login sessions remain unchanged. 
+#   
+#   Recommendation: use 'screen' or 'tmux' so that the backup will be finished
+#   even if the connection fails.
+#	
 #
 #	Also you should take a closer look to *setup()*. Change the variables according
 #	your filesystem structure.
 #
-#	2019-05-10	Comments
-#
-#	2019-04-30	initial commit by Dolorosus
-#
-#
+
 exec &> >(tee "${0}.out") 
 
 
@@ -29,14 +31,15 @@ setup()
     export destvol="/mnt/USB64"
     export destpath="${destvol}/BACKUPS" 
     export snappath="${destvol}/.snapshots/BACKUPS"
-    export destpatt="MyRaspi-2*_[0-9]*.img"
-    export bcknewname="MyRaspi-${stamp}.img"
+    export bckprefix="MyRaspi4"
+    export destpatt="${bckprefix}-2*_[0-9]*.img"
+    export bcknewname="${bckprefix}-${stamp}.img"
     export tmppre="#"
 
     export bckscript="/home/pi/scripts/RaspiBackup.sh"
     export snapscript="/home/pi/scripts/btrfs-snapshot-rotation.sh"
     export mark="manual"
-    export versions=14
+    export versions=7
     #
     # adapt according to your needs
     #
@@ -65,7 +68,7 @@ errexit () {
         11) echo "${CROSS} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
             exit ${1};;
 
-        12) echo "${CROSS}} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
+        12) echo "${CROSS} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
             exit ${1};;
         
         20) echo "${CROSS} No executable file $bckscript found.${NOATT}"
@@ -77,13 +80,13 @@ errexit () {
         25) echo "${TICK} ${YELLOW}${action} $prog failed${NOATT}"
             ;;
             
-        30) echo "${TICK}vsomething went wrong..."
+        30) echo "${CROSS}vsomething went wrong..."
             echo "the incomplete backupfile is named: ${destpath}/${tmppre}${bcknewname}"
             echo "Resolve the issue, rename the the backupfile and restart"
             echo "Good luck!${NOATT}"
             exit ${1};;
             
-        *)  echo "${TICK} An unknown error occured${NOATT}" 
+        *)  echo "${CROSS} An unknown error occured${NOATT}" 
             exit 99;;
     esac
 }
@@ -91,26 +94,32 @@ errexit () {
 progs () {
 
     local action=${1:=start}
+    local grace=30
     local setopt=$-
 
-    set +e
-    msg "${1}ing services"
-    systemctl ${action} ${prog} >/dev/null 2>&1
-    [ -z "${setopt##*e*}" ] && set -e
-    
-    [ "${action}" == "start" ] && pihole restartdns
-  
+    [ "${action}" == "stop" ] && { 
+        msg "System is put to rescue mode."
+        systemctl isolate rescue
+    }
+    [ "${action}" == "start" ] && {
+        msg "System is put to multi-user mode."
+        systemctl isolate multi-user
+    }
+    msg "waiting for ${grace}s"
+    sleep ${grace}s
+    msgok "done."
+
     return 0	
 }
 
 do_inital_backup () {
     
-     local creopt="-c -s 4000 "
+    local creopt="-c -s 8000 "
     progs stop
 
-    msg "starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
+    msg "starting backup_: ${bckscript} start ${creopt} ${destpath}/${tmppre}${bcknewname}"
     backup="ko"
-    $bckscript start ${creopt} "${destpath}/${tmppre}${bcknewname}" && {
+    ${bckscript} start ${creopt} "${destpath}/${tmppre}${bcknewname}" && {
         msg "moving  ${destpath}/${tmppre}bcknewname} to ${destpath}/${bcknewname}"
         mv "${destpath}/${tmppre}${bcknewname}" "${destpath}/${bcknewname}"  
         msgok "Backup successful"
@@ -120,15 +129,13 @@ do_inital_backup () {
 
     progs start
 
-    [ ${backup} = "ok" ] && return 0
+    [ "${backup}" == "ok" ] && return 0
     errexit 30
 }
 
 do_backup () {
     
     local creopt="${1}"
-    
-    progs stop
 
     # move the destination to a temporary filename while 
     # the backup is working
@@ -136,19 +143,19 @@ do_backup () {
     msg "Moving ${bckfile} to ${destpath}/${tmppre}${bcknewname}"
     mv "${bckfile}" "${destpath}/${tmppre}${bcknewname}"
     }
-    msg "Starting backup_: $bckscript start ${creopt} ${destpath}/${tmppre}${bcknewname}"
+    msg "Starting backup_: ${bckscript} start ${creopt} ${destpath}/${tmppre}${bcknewname}"
     backup="ko"
-    $bckscript start ${creopt} "${destpath}/#${bcknewname}"  && {
+    ${bckscript} start ${creopt} "${destpath}/#${bcknewname}"  && {
         backup="ok"
         msg "Moving  ${destpath}/${tmppre}${bcknewname} to ${destpath}/${bcknewname}"
         mv "${destpath}/${tmppre}${bcknewname}" "${destpath}/${bcknewname}"
         msgok "Backup successful"
-         msg "Backupfile is_: ${destpath}/${bcknewname}"  
+        msg "Backupfile is_: ${destpath}/${bcknewname}"  
     }
   
     progs start
 
-    [ ${backup} = "ok" ] && return 0
+    [ "${backup}" == "ok" ] && return 0
     errexit 30
 
 }
@@ -166,18 +173,20 @@ setup
 #
 # Bailout in case of uncaught error
 #
-set -e
+set +e
 
 [ $(/usr/bin/id -u) == "0" ] || errexit 1
+
+msg "System will be isolated."
+progs stop
+
 [ "$(ls -1 ${destpath}/${destpatt}|wc -l)" == "0" ] && {
-    progs stop
     do_inital_backup 
     progs start
     exit 0
 }
 
-#
-[ ${skipcheck} == "noskip" ] && {
+[ "${skipcheck}" == "noskip" ] && {
     msg "some checks" 
     msg "get devicename for ${destvol}"
     destdev=$(grep "${destvol}" /etc/mtab| cut -d \   -f 1)
@@ -192,7 +201,7 @@ set -e
     mount ${destdev} ${destvol}
 
     msg "verify block checksums on ${destvol}"
-    btrfs scrub start -B ${destvol}
+    btrfs scrub start -B  ${destvol}
 }
 
 [ "$(ls -1 ${destpath}/${destpatt}|wc -l)" == "1" ] || errexit 10
@@ -229,5 +238,5 @@ msgok "All's Well That Ends Well"
 #
 exit 0
 # ===============================================================================================================
-# End of daily.sh
+# End of WeeklyBackup.sh
 # ===============================================================================================================
