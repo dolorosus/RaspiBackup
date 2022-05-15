@@ -106,7 +106,7 @@ errexit() {
 progs() {
 
     local action=${1:=start}
-    local grace=30
+    local grace=60
     local setopt=$-
 
     [ "${action}" == "stop" ] && {
