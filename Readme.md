@@ -4,11 +4,6 @@ The resulting file can be installed to a sdcard.
 Refer to https://www.raspberrypi.org/documentation/installation/installing-images/README.md  
 
 
-## Author / Origin:
-
-This script is inpired by user `jinx`.
-
-
 ## Usage
 
 * RaspiBackup.sh _COMMAND_ _OPTION_ sdimage
@@ -87,7 +82,7 @@ RaspiBackup.sh resize -s 2000  /path/to/backup.img
 
 Note: Image compression is deprecated, a better alternative is to use filesystems that allow compressed folders (e.g. BTRFS)
 
-### Caveat:
+### :zap: Caveat:
 
 This script takes a backup while the source partitions are mounted and in use. The resulting imagefile will be inconsistent!
 
@@ -97,6 +92,7 @@ To minimize inconsistencies, you should terminate as many services as possible b
 
 Use a file system for the target that can handle snapshots (e.g. BTRFS). 
 Creating a snapshot, before starting a backup,  results in a space efficient versioning backup.
+
 
 
 
