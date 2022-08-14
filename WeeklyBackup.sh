@@ -104,7 +104,12 @@ progs () {
         systemctl isolate multi-user
     }
     msg "waiting for ${grace}s"
-    sleep ${grace}s
+    for (( i=0; i<=${grace};i++))
+    do
+        echo -n '.'
+        sleep 1s
+    done
+    echo ''
     msgok "done."
 
     return 0	
