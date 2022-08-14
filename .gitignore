@@ -1,2 +1,3 @@
 
-RaspiBackup.sh.bak
+*.bak
+.vscode/settings.json
