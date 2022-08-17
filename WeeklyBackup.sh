@@ -130,7 +130,10 @@ progs() {
 
 do_inital_backup() {
 
-    local creopt="-c -s 8000 "
+    #
+    # Determine how many blocks the backupfile needs and add some blocks for safety
+    #
+    local creopt="-c -s $(($(df -k --output=used /|tail -1)/1024+750))"
     progs stop
 
     msg "starting backup_: ${bckscript} start ${creopt} ${destpath}/${tmppre}${bcknewname}"
