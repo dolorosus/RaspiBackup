@@ -1,8 +1,0 @@
-{
-    "telemetry.enableTelemetry": false,
-    "editor.insertSpaces": false,
-    "editor.quickSuggestionsDelay": 100,
-    "editor.fontFamily": "'Cascadia Code PL', 'Fira Code Medium',Consolas, 'Courier New', monospace",
-    "editor.fontSize": 14,
-    "gitlens.showWelcomeOnInstall": false
-}
