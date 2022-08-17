@@ -118,8 +118,7 @@ progs() {
         systemctl isolate graphical
     }
     msg "waiting for ${grace}s"
-    for ((i = 0; i <= ${grace}; i++))
-    do
+    for ((i = 0; i <= ${grace}; i++)); do
         echo -n '.'
         sleep 1s
     done
@@ -134,7 +133,7 @@ do_inital_backup() {
     #
     # Determine how many blocks the backupfile needs and add some blocks for safety
     #
-    local creopt="-c -s $(($(df -k --output=used /|tail -1)/1024+750))"
+    local creopt="-c -s $(($(df -k --output=used / | tail -1) / 1024 + 550))"
     progs stop
 
     msg "starting backup_: ${bckscript} start ${creopt} ${destpath}/${tmppre}${bcknewname}"
@@ -188,14 +187,14 @@ do_backup() {
 #
 trap "progs start" SIGTERM SIGINT
 
-setup
+setup "${1}"
 
 #
 # Bailout in case of uncaught error
 #
 set +e
 
-[ $(/usr/bin/id -u) == "0" ] || errexit 1
+[ $(/usr/bin/id -u) != "0" ] && errexit 1
 
 msg "System will be isolated."
 progs stop
@@ -206,7 +205,7 @@ progs stop
     exit 0
 }
 
-[ "${skipcheck}" == "noskip" ] && {
+[ x"${skipcheck}" == x"noskip" ] && {
     msg "some checks"
     msg "get devicename for ${destvol}"
     destdev=$(grep "${destvol}" /etc/mtab | cut -d \  -f 1)
