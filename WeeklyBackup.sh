@@ -114,8 +114,8 @@ progs() {
         systemctl isolate rescue
     }
     [ "${action}" == "start" ] && {
-        msg "System is put to multi-user mode."
-        systemctl isolate graphical
+        msg "System is put to default mode."
+        systemctl isolate default
     }
     msg "waiting for ${grace}s"
     for ((i = 0; i <= ${grace}; i++)); do
