@@ -118,7 +118,8 @@ progs() {
         systemctl isolate graphical
     }
     msg "waiting for ${grace}s"
-    for ((i = 0; i <= ${grace}; i++)); do
+    for ((i = 0; i <= ${grace}; i++))
+    do
         echo -n '.'
         sleep 1s
     done
@@ -164,7 +165,7 @@ do_backup() {
     }
     msg "Starting backup_: ${bckscript} start ${creopt} ${destpath}/${tmppre}${bcknewname}"
     backup="ko"
-    ${bckscript} start ${creopt} "${destpath}/#${bcknewname}" && {
+    ${bckscript} start ${creopt} "${destpath}/${tmppre}${bcknewname}" && {
         backup="ok"
         msg "Moving  ${destpath}/${tmppre}${bcknewname} to ${destpath}/${bcknewname}"
         mv "${destpath}/${tmppre}${bcknewname}" "${destpath}/${bcknewname}"
