@@ -115,7 +115,7 @@ progs() {
     }
     [ "${action}" == "start" ] && {
         msg "System is put to multi-user mode."
-        systemctl isolate multi-user
+        systemctl isolate graphical
     }
     msg "waiting for ${grace}s"
     for ((i = 0; i <= ${grace}; i++)); do
