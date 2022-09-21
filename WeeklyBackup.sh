@@ -21,7 +21,8 @@
 #	your filesystem structure.
 #
 
-exec &> >(tee "${0}.out")
+exec &> >(tee "${0%%.sh}.out")
+MYANME=${0##*/}
 
 setup() {
     export skipcheck=${1:-"noskip"}

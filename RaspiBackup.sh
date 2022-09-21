@@ -39,8 +39,14 @@ error () {
     exit ${2:-1}
 }
 
+MYANME=${0##*/}
+
+
 colors=${0%%${0##*/}}COLORS.sh
 [ -f ${colors} ] && source ${colors}
+
+ps $PPID|grep WeeklyBackup.sh >/dev/null 2>&1 || exec &> >(tee "${0%%.sh}.out")
+
 
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create () {
@@ -517,7 +523,6 @@ fi
 #
 # Trap keyboard interrupt (ctrl-c)
 trap ctrl_c SIGINT SIGTERM
-
 
 # Do the requested functionality
 case ${opt_command} in
