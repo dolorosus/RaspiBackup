@@ -39,7 +39,8 @@ error () {
     exit ${2:-1}
 }
 
-[ -f ./COLORS.sh ] && source ./COLORS.sh
+colors=${0%%${0##*/}}COLORS.sh
+[ -f ${colors} ] && source ${colors}
 
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create () {
@@ -352,6 +353,8 @@ cat<<EOF
             There are some excludes regarding docker. 
             No docker image nor any docker container will be in the backup.
             If you want to include them, delete the excludes for /var/libdocker and /var/lib/containerd
+
+            
 
     Examples:
 

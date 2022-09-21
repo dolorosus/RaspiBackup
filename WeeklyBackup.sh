@@ -47,8 +47,8 @@ msg() {
 msgok() {
     echo "${TICK} ${1}${NOATT}"
 }
-
-[ -f ./COLORS.sh ] && source ./COLORS.sh
+colors=${0%%${0##*/}}COLORS.sh
+[ -f ${colors} ] && source ${colors}
 
 errexit() {
 

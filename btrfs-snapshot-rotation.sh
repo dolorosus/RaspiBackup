@@ -8,7 +8,8 @@ SNAP=$3
 COUNT=${4:-8}
 QUIET=$5
 
-[ -f ./COLORS.sh ] && source ./COLORS.sh
+colors=${0%%${0##*/}}COLORS.sh
+[ -f ${colors} ] && source ${colors}
 
 usage() {
     scriptname=$(/usr/bin/basename -- "$0")
