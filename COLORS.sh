@@ -5,31 +5,31 @@
 #
 #
 #
-# Use this line in your script to source
-# [ -f ${0%%${0##*/}}COLORS.sh ] && source ${0%%${0##*/}}COLORS.sh
+# Use this line in your script to source 
+# [ -f ${0%%${0##*/}}COLORS.sh ] && . ${0%%${0##*/}}COLORS.sh
 #
 [ -t 1 ] && {
-    RED=$(tput setaf 1)
-    GREEN=$(tput setaf 2)
-    YELLOW=$(tput setaf 3)
-    BLUE=$(tput setaf 4)
-    MAGENTA=$(tput setaf 5)
-    CYAN=$(tput setaf 6)
-    WHITE=$(tput setaf 7)
-    RESET=$(tput setaf 9)
-    BOLD=$(tput bold)
-    NOATT=$(tput sgr0)
-} || {
-    RED=""
-    GREEN=""
-    YELLOW=""
-    BLUE=""
-    MAGENTA=""
-    CYAN=""
-    WHITE=""
-    RESET=""
-    BOLD=""
-    NOATT=""
+	RED=$(tput setaf 1)
+	GREEN=$(tput setaf 2)
+	YELLOW=$(tput setaf 3)
+	BLUE=$(tput setaf 4)
+	MAGENTA=$(tput setaf 5)
+	CYAN=$(tput setaf 6)
+	WHITE=$(tput setaf 7)
+	RESET=$(tput setaf 9)
+	BOLD=$(tput bold)
+	NOATT=$(tput sgr0)
+}||{
+	RED=""
+	GREEN=""
+	YELLOW=""
+	BLUE=""
+	MAGENTA=""
+	CYAN=""
+	WHITE=""
+	RESET=""
+	BOLD=""
+	NOATT=""
 }
 
 TICK="[${GREEN}✓${NOATT}]${GREEN}"
@@ -39,18 +39,19 @@ WARN="[${YELLOW}w${NOATT}]${YELLOW}"
 QST="[?]"
 IDENT="${NOATT}   "
 
-export MYNAME=${0##*/}
+MYNAME=$(basename -- $0)
 
-msgok() {
+
+msgok () {
     echo -e "${TICK} ${1}${NOATT}\n"
 }
 
-msg() {
+msg () {
     echo -e "${INFO} ${1}${NOATT}"
 }
-msgwarn() {
+msgwarn () {
     echo -e "${WARN} ${1}${NOATT}"
 }
-msgfail() {
+msgfail () {
     echo -e "${CROSS} ${1}${NOATT}"
 }

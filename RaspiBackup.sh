@@ -1,5 +1,5 @@
 #!/bin/bash
-# 
+#
 # Utility script to backup Raspberry Pi's SD Card to a sparse image file
 # mounted as a filesystem in a file, allowing for efficient incremental
 # backups using rsync
@@ -20,7 +20,18 @@
 #
 #
 # Defaults
-# Size of bootpartiotion in MB
+# Size of bootpart in MB
+
+#
+# if not called by wrapper, define some fancy colors and
+# duplicate output to file
+#
+ps $PPID|grep WeeklyBackup.sh >/dev/null 2>&1 || {
+    colors=${0%%${0##*/}}COLORS.sh
+    [ -f ${colors} ] && . ${colors}
+    exec &> >(tee "${0%%.sh}.out")
+}
+
 BOOTSIZE=250
 
 # in case COLORS.sh is missing
@@ -36,17 +47,10 @@ msgwarn () {
 # Echos an error string in red text and exit
 error () {
     echo -e "${CROSS} ${1}${NOATT}" >&2
-    exit ${2:-1}
+    exit 1
 }
-
-MYANME=${0##*/}
-
-
 colors=${0%%${0##*/}}COLORS.sh
 [ -f ${colors} ] && source ${colors}
-
-ps $PPID|grep WeeklyBackup.sh >/dev/null 2>&1 || exec &> >(tee "${0%%.sh}.out")
-
 
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create () {
@@ -269,7 +273,6 @@ do_umount () {
 # resize image
 #
 do_resize () {
-
     local SIZE=${1:-1000}
 
     do_check || error "Filesystemcheck failed. Resize aborted."
@@ -360,8 +363,6 @@ cat<<EOF
             No docker image nor any docker container will be in the backup.
             If you want to include them, delete the excludes for /var/libdocker and /var/lib/containerd
 
-            
-
     Examples:
 
         ${MYNAME} start -c /path/to/rpi_backup.img
@@ -391,7 +392,9 @@ EOF
 #####################################################################################################
 
 # Make sure we have root rights
-[[ ${EUID} != 0 ]] && error "Please run as root. Try sudo."
+if [[ $EUID != 0 ]]; then
+    error "Please run as root. Try sudo."
+fi
 
 #
 # Check for dependencies
@@ -406,6 +409,7 @@ case "${1}" in
 
     start|mount|umount|check|gzip|chbootenv|showdf|resize) opt_command=${1}
     ;;
+
 
     -h|--help)
         usage
@@ -524,6 +528,7 @@ fi
 # Trap keyboard interrupt (ctrl-c)
 trap ctrl_c SIGINT SIGTERM
 
+
 # Do the requested functionality
 case ${opt_command} in
     start)
@@ -536,10 +541,13 @@ case ${opt_command} in
         change_bootenv
         do_showdf
         do_umount
-        [ -n "${opt_compress}" ] && do_compress
+        if [ -n "${opt_compress}" ]; then
+            do_compress
+        fi
         msgok "SD Image backup process completed."
-        [ -n "${opt_log}" ] && msg "See rsync log in ${LOG}"
-        
+        if [ -n "${opt_log}" ]; then
+            msg "See rsync log in ${LOG}"
+        fi
     ;;
     mount)
         if [ ! -f "${IMAGE}" ] && [ -n "${opt_create}" ]; then
