@@ -48,8 +48,9 @@ msg() {
 msgok() {
     echo "${TICK} ${1}${NOATT}"
 }
-colors=${0%%${0##*/}}COLORS.sh
-[ -f ${colors} ] && source ${colors}
+orgname=$(readlink -f "${0}")
+colors=${orgname%%${orgname##*/}}COLORS.sh
+[ -f ${colors} ] && . ${colors}
 
 errexit() {
 

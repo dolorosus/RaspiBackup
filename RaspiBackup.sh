@@ -23,14 +23,9 @@
 # Size of bootpart in MB
 
 #
-# if not called by wrapper, define some fancy colors and
-# duplicate output to file
 #
-ps $PPID|grep WeeklyBackup.sh >/dev/null 2>&1 || {
-    colors=${0%%${0##*/}}COLORS.sh
-    [ -f ${colors} ] && . ${colors}
-    exec &> >(tee "${0%%.sh}.out")
-}
+
+
 
 BOOTSIZE=250
 
@@ -49,8 +44,7 @@ error () {
     echo -e "${CROSS} ${1}${NOATT}" >&2
     exit 1
 }
-colors=${0%%${0##*/}}COLORS.sh
-[ -f ${colors} ] && source ${colors}
+
 
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create () {
@@ -390,6 +384,12 @@ EOF
 #####################################################################################################
 # Main
 #####################################################################################################
+
+mypath=$(readlink -f "${0}")
+
+colors=${mypath%%${mypath##*/}}COLORS.sh
+[ -f ${colors} ] && . ${colors}
+exec &> >(tee "${0%%.sh}.out")
 
 # Make sure we have root rights
 if [[ $EUID != 0 ]]; then

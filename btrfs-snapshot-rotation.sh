@@ -10,7 +10,9 @@ SNAP=${5:-$(date "+%F--%H-%M-%S")}
 
 QUIET=$6
 
-[ -f ./COLORS.sh ] && source ./COLORS.sh
+orgname=$(readlink -f "${0}")
+colors=${orgname%%${orgname##*/}}COLORS.sh
+[ -f ${colors} ] && . ${colors}
 
 usage() {
     scriptname=${0##*/}
