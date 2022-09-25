@@ -14,19 +14,19 @@ QUIET=${5}
 SNAP=$(date "+%F--%H-%M-%S")
 
 colors=${ORGNAME%%${ORGNAME##*/}}COLORS.sh
-[ -f ${colors} ] && . ${colors}
+[ -f ${colors} ] && source ${colors}
 
 usage() {
     
 cat <<EOF
 ${SCRIPTNAME}: Take and rotate snapshots on a btrfs file system
-  Usage:
-  ${SCRIPTNAME} source target snap_name [count] [-q]
- 
-  SOURCE: path to make snaphost of
-  TARGET: snapshot directory
-  [MARK]: Marker appended to keep, defaults to  manual
-  [-q]:   Be quiet.
+Usage:
+${SCRIPTNAME} source target snap_name [count] [-q]
+
+SOURCE: path to make snaphost of
+TARGET: snapshot directory
+[MARK]: Marker appended to keep, defaults to  manual
+[-q]:   Be quiet.
 Example for crontab:
 15,30,45  * * * *   root    /usr/local/bin/btrfs-snapshot / /.btrfs quarterly 4 -q
 0         * * * *   root    /usr/local/bin/btrfs-snapshot / /.btrfs hourly 8 -q
@@ -50,7 +50,9 @@ doit() {
 
 # Basic argument checks:
 
-[ ${@} -lt 2 ] && { usage }
+[ ${@} -lt 2 ] && { 
+    usage 
+}
 
 [ ! -z "$6" ] && {
     echo ${CROSS} "Too many options."
@@ -58,7 +60,7 @@ doit() {
 }
 
 [ -n "${QUIET}" ] && [ "${QUIET}" != "-q" ] && {
-    echo ${CROSS} "Option 5 is either -q or empty. Given: \"${QUIET}\""
+    echo ${CROSS} "Option 5 is either -q or empty. Given: ${QUIET}"
     usage
 }
 
