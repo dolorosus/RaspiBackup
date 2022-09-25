@@ -50,7 +50,7 @@ doit() {
 
 # Basic argument checks:
 
-[ ${@} -lt 2 ] && { 
+[ "${#}" -lt 2 ] && { 
     usage 
 }
 
