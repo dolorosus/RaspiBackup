@@ -23,6 +23,7 @@
 
 exec &> >(tee "${0%%.sh}.out")
 MYANME=${0##*/}
+ORGNAME=$(readlink -f "${0}")
 
 setup() {
     export skipcheck=${1:-"noskip"}
@@ -48,8 +49,9 @@ msg() {
 msgok() {
     echo "${TICK} ${1}${NOATT}"
 }
-orgname=$(readlink -f "${0}")
-colors=${orgname%%${orgname##*/}}COLORS.sh
+
+
+colors=${ORGNAME%%${ORGNAME##*/}}COLORS.sh
 [ -f ${colors} ] && . ${colors}
 
 errexit() {
@@ -207,7 +209,7 @@ progs stop
     exit 0
 }
 
-[ x"${skipcheck}" == x"noskip" ] && {
+[ "${skipcheck}" = "noskip" ] && {
     msg "some checks"
     msg "get devicename for ${destvol}"
     destdev=$(grep "${destvol}" /etc/mtab | cut -d \  -f 1)
