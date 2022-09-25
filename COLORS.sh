@@ -39,9 +39,6 @@ WARN="[${YELLOW}w${NOATT}]${YELLOW}"
 QST="[?]"
 IDENT="${NOATT}   "
 
-MYNAME=$(basename -- $0)
-
-
 msgok () {
     echo -e "${TICK} ${1}${NOATT}\n"
 }
