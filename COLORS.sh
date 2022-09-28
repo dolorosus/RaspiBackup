@@ -1,4 +1,3 @@
-#!/bin/bash
 #
 # Define some fancy colors, but only if connected to a terminal.
 # Thus output to file will be not cluttered anymore
