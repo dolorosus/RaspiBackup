@@ -3,6 +3,8 @@ Script to backup a Raspberry Pi SDCARD to a file.
 The resulting file can be installed to a sdcard. 
 Refer to https://www.raspberrypi.org/documentation/installation/installing-images/README.md  
 
+**Read this text to the end, before use!**
+
 
 ## Usage
 
@@ -86,7 +88,7 @@ Note: Image compression is deprecated, a better alternative is to use filesystem
 
 This script takes a backup while the source partitions are mounted and in use. The resulting imagefile will be inconsistent!
 
-To minimize inconsistencies, you should terminate as many services as possible before starting the backup. An example is provided as weekly.sh.
+To minimize inconsistencies, you should terminate as many services as possible before starting the backup. An example is provided as [WeeklyBackup.sh](https://github.com/dolorosus/RaspiBackup/blob/master/WeeklyBackup.sh).
 
 ### Recommendation:
 
