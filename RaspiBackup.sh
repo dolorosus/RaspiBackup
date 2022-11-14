@@ -243,9 +243,6 @@ do_backup() {
             --exclude='var/swap ' \
             --exclude='home/*/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
-            --exclude='var/lib/docker/' \
-            --exclude='var/lib/containerd/' \
-            --exclude='home/pi/.vscode-server/' \
             / ${MOUNTDIR}/
 
     else
