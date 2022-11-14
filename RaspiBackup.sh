@@ -25,8 +25,6 @@
 #
 #
 
-BOOTSIZE=250
-
 # in case COLORS.sh is missing
 msgok() {
     echo -e "${TICK} ${1}${NOATT}"
@@ -46,9 +44,9 @@ error() {
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create() {
 
-    BOOTSIZE=${BOOTSIZE:-250}
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
-    msg "Creating sparse "${IMAGE}", the apparent size of $SDCARD"
+    msg "Creating sparse "${IMAGE}", of ${SIZE}M"
     dd if=/dev/zero of="${IMAGE}" bs=${BLOCKSIZE} count=0 seek=${SIZE}
 
     if [ -s "${IMAGE}" ]; then
@@ -71,14 +69,10 @@ do_create() {
 
 change_bootenv() {
 
-    declare -a srcpartuuid
-    declare -a dstpartuuid
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     local editmanual=false
     local fstab_tmp=/tmp/fstab
-    local part
-    local partcnt
-
     #
     # create a working copy of /etc/fstab
     #
@@ -87,38 +81,41 @@ change_bootenv() {
     # assuming we have two partitions (/boot and /)
     #
 
-    for ((p = 1; p <= 2; p++)); do
-        srcpartuuid[${p}]=$(lsblk -n -o PARTUUID "${SDCARD}${SUFFIX}${p}") || {
-            msg "Could not find PARTUUID of ${SDCARD}${SUFFIX}${p}"
-            editmanual=true
-        }
+    #
+    #  Device mit findmnt ermitteln
+    #
+    #
+    local BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
+        msg "Could not find PARTUUID of ${BOOTDEV}"
+        editmanual=true
+    }
+    local RootPARTUUID=$(lsblk -n -o PARTUUID "${ROOTDEV}") || {
+        msg "Could not find PARTUUID of ${ROOTDEV}"
+        editmanual=true
+    }
 
-        dstpartuuid[${p}]=$(lsblk -n -o PARTUUID "${LOOPBACK}p${p}") || {
-            msg "Could not find PARTUUID of ${LOOPBACK}p${p}"
-            editmanual=true
-        }
-        #
-        # Let' look if our partuuid for src is in fstab, if true then change the PARTUUID to
-        #  the PARTUUID of the backup
-        #
-        grep -q "PARTUUID=${srcpartuuid[${p}]}" $fstab_tmp && {
-            msg "Changeing PARTUUID from ${srcpartuuid[${p}]} to ${dstpartuuid[${p}]} in $fstab_tmp"
-            sed -i "s/PARTUUID=${srcpartuuid[${p}]}/PARTUUID=${dstpartuuid[${p}]}/" $fstab_tmp || {
-                msgwarn "PARTUUID ${dstpartuuid[2]} has not been changed in  $fstab_tmp"
-                editmanual=true
-            }
+    local dstBootPARTUUID=$(lsblk -n -o PARTUUID "${LOOPBACK}p1") || {
+        msg "Could not find PARTUUID of ${LOOPBACK}p1"
+        editmanual=true
+    }
+    local dstRootPARTUUID=$(lsblk -n -o PARTUUID "${LOOPBACK}p2") || {
+        msg "Could not find PARTUUID of ${LOOPBACK}p2"
+        editmanual=true
+    }
 
-        } || {
-            msgwarn "PARTUUID=${srcpartuuid[${p}]} not found in $fstab_tmp"
-            editmanual=true
-        }
-    done
+    change_PARTUUID "${BootPARTUUID}" "$dstBootPARTUUID" "$fstab_tmp"
+    #
+    # Let' look if our partuuid for src is in fstab, if true then change the PARTUUID to
+    #  the PARTUUID of the backup
+    #
+    change_PARTUUID "${RootPARTUUID}" "$dstRootPARTUUID" "$fstab_tmp"
     #
     # Something went wrong automatically changing wasn't possible
     # Now the Uuser has a second chance
     if ${editmanual}; then
         msgwarn "fstab cannot be changed automatically."
         msgwarn "correct fstab on destination manually."
+        editmanual=false
     else
         cp $fstab_tmp ${MOUNTDIR}/etc/fstab
         msgok "PARTUUIDs changed successful in fstab"
@@ -127,22 +124,12 @@ change_bootenv() {
     #
     # Changing /boot/cmdline.txt
     #
-    editmanual=false
     cmdline_tmp=/tmp/cmdline.txt
     cp /boot/cmdline.txt $cmdline_tmp || {
         msgwarn "could not copy ${LOOPBACK}p1/cmdline.txt to $cmdline_tmp"
         editmanual=true
     }
-    grep -q "PARTUUID=${srcpartuuid[2]}" $cmdline_tmp && {
-        msg "Changeing PARTUUID from ${srcpartuuid[2]} to ${dstpartuuid[2]} in $cmdline_tmp"
-        sed -i "s/PARTUUID=${srcpartuuid[2]}/PARTUUID=${dstpartuuid[2]}/" $cmdline_tmp || {
-            msgwarn "PARTUUID ${dstpartuuid[2]} has not been changed in $cmdline_tmp"
-            editmanual=true
-        }
-    } || {
-        msgwarn "PARTUUID ${srcpartuuid[2]} not found in  $cmdline_tmp"
-        editmanual=true
-    }
+    ChangePARTUUID "${RootPARTUUID}" "${dstRootPARTUUID}" "${cmdline_tmp}"
 
     if ${editmanual}; then
         msgwarn "cmdline.txt cannot be changed automatically."
@@ -153,8 +140,36 @@ change_bootenv() {
     fi
 }
 
+change_PARTUUID() {
+
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
+    [ -z "${1}" -o -z "${2}" -o -z "${3}" ] && {
+        echo "${FUNCNAME[*]}   Parameter_:${*}"
+        echo "error either par1 or par2 or par3 is empty"
+        return 1
+    }
+
+    local srcUUID="${1}"
+    local dstUUID="${2}"
+    local file="${3}"
+
+    grep -q "PARTUUID=${srcUUID}" ${file} && {
+        msg "Changeing PARTUUID from ${srcUUID} to ${dstUUID} in ${file}"
+        sed -i "s/PARTUUID=${srcUUID}/PARTUUID=${dstUUID}/" "${file}" || {
+            msgwarn "PARTUUID ${srcUUID} has not been changed in  ${file}"
+            editmanual=true
+        } || {
+            msgwarn "PARTUUID=${srcUUID} not found in ${file}"
+            editmanual=true
+        }
+    }
+}
+
 # Mounts the ${IMAGE} to ${LOOPBACK} (if needed) and ${MOUNTDIR}
 do_mount() {
+
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     # Check if do_create already attached the SD Image
     [ $(losetup -f) = ${LOOPBACK} ] && {
@@ -171,6 +186,8 @@ do_mount() {
 }
 
 do_check() {
+
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     local err
 
@@ -203,6 +220,8 @@ do_check() {
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
 do_backup() {
 
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
     local rsyncopt
 
     rsyncopt="-aEvx --del --stats"
@@ -226,6 +245,7 @@ do_backup() {
             --exclude='var/cache/apt/archives/**' \
             --exclude='var/lib/docker/' \
             --exclude='var/lib/containerd/' \
+            --exclude='home/pi/.vscode-server/' \
             / ${MOUNTDIR}/
 
     else
@@ -235,6 +255,8 @@ do_backup() {
 
 do_showdf() {
 
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
     msg ""
     df -mh ${LOOPBACK}p1 ${LOOPBACK}p2
     msg ""
@@ -242,6 +264,9 @@ do_showdf() {
 
 # Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
 do_umount() {
+
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
     msg "Flushing to disk"
     sync
     sync
@@ -260,14 +285,17 @@ do_umount() {
 # resize image
 #
 do_resize() {
-    local SIZE=${1:-1000}
+
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
+    local addsize=${1:-1000}
 
     do_check || error "Filesystemcheck failed. Resize aborted."
 
     do_umount >/dev/null 2>&1
 
     msg "increasing size of ${IMAGE} by ${SIZE}M"
-    truncate --size=+${SIZE}M "${IMAGE}" || error "Error adding ${SIZE}M to ${IMAGE}"
+    truncate --size=+${addsize}M "${IMAGE}" || error "Error adding ${addsize}M to ${IMAGE}"
 
     losetup ${LOOPBACK} "${IMAGE}"
     msg "resize partition 2 of ${IMAGE}"
@@ -285,6 +313,9 @@ do_resize() {
 
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
 do_compress() {
+
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
     msg "Compressing ${IMAGE} to ${IMAGE}.gz"
     pv -tpreb "${IMAGE}" | gzip >"${IMAGE}.gz.tmp"
     [ -s "${IMAGE}.gz.tmp" ] && {
@@ -310,6 +341,9 @@ ctrl_c() {
 
 # Prints usage information
 usage() {
+
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
     cat <<EOF
     ${MYNAME}
 
@@ -341,8 +375,7 @@ usage() {
             ${BOLD}-d${NOATT}         deletes the SD Image after successful compression
             ${BOLD}-f${NOATT}         forces overwrite of 'sdimage'.gz if it exists
             ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
-            ${BOLD}-i sdcard${NOATT}  specifies the SD Card location (default: $SDCARD)
-            ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: Size of $SDCARD)
+            ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: 250M+ size of / +500M) )
             ${BOLD}-r Mb${NOATT}      the image will be resized by this value
 
     Note:
@@ -403,8 +436,7 @@ start | mount | umount | check | gzip | chbootenv | showdf | resize)
     opt_command=${1}
     ;;
 
-\
-    -h | --help)
+"-h" | "--help")
     usage
     exit 0
     ;;
@@ -422,16 +454,12 @@ while getopts ":czdflL:i:r:s:" opt; do
     d) opt_delete=1 ;;
     f) opt_force=1 ;;
     l) opt_log=1 ;;
-    L)
-        opt_log=1
+    L) opt_log=1
         LOG=${OPTARG}
         ;;
-    i) SDCARD=${OPTARG} ;;
     r) RSIZE=${OPTARG} ;;
-    s)
-        SIZE=${OPTARG}
-        BLOCKSIZE=1M
-        ;;
+    s) SIZEARG=${OPTARG} ;;
+
     \?) error "Invalid option: -${OPTARG}\nSee '${MYNAME} --help' for usage" ;;
     :) error "Option -${OPTARG} requires an argument\nSee '${MYNAME} --help' for usage" ;;
     esac
@@ -440,17 +468,17 @@ shift $((OPTIND - 1))
 #
 # setting defaults if -i or -s is ommitted
 #
-SDCARD=${SDCARD:-"/dev/mmcblk0"}
-SIZE=${SIZE:-$(blockdev --getsz $SDCARD)}
-BLOCKSIZE=${BLOCKSIZE:-$(blockdev --getss $SDCARD)}
-RSIZE=${RSIZE:-1000}
 
-case "${SDCARD}" in
-"/dev/mmc"*) SUFFIX="p" ;;
-"/dev/sd"*) SUFFIX="" ;;
-"/dev/disk/by-id/"*) SUFFIX="-part" ;;
-*) SUFFIX="p" ;;
-esac
+declare -r BOOTDEV=$(findmnt --output=SOURCE -n /boot) || error "Could not find device for /boot"
+declare -r ROOTDEV=$(findmnt --output=SOURCE -n /)|| error "Could not find device for /"
+
+declare -r BOOTSIZE=250
+declare -r ROOTSIZE=$(df -m --output=used / | tail -1)|| error "size of / could not determined" 
+declare -r SIZE=${SIZEARG:-$((${BOOTSIZE} + ${ROOTSIZE} + 500))} || error "size of imagefile could not calculated"
+declare -r RSIZE=${RSIZE:-1000}
+declare -r BLOCKSIZE=1M
+
+
 
 # Preflight checks
 #
