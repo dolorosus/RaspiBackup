@@ -5,6 +5,8 @@ Refer to https://www.raspberrypi.org/documentation/installation/installing-image
 
 **Read this text to the end, before use!**
 
+This script creates backups of the system on an SD card. It creates backups of the device from the system was started. It doesn't matter whether the system was booted from an SD card or a USB drive.
+The size of the image will be calculated as the real size of the root partition plus 256m for /boot plus 500mb reserve (not the size of the whole device... like 30GB for a pendrive where only 4GB worth of root partition resides). This is really useful, if you run your system from a big partition residing on usb drive 
 
 ## Usage
 
@@ -28,7 +30,6 @@ E.g.:
 ### Options:
 
 * -c creates the SD Image if it does not exist
-* -i defines a different source device path instead of the default /dev/mmcblk0
 * -l writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
 * -z compresses the SD Image (after backup) to 'sdimage'.gz (deprecated)
 *    use pishrink instead.
@@ -39,7 +40,7 @@ E.g.:
 
 ### Examples:
 
-Start backup to `backup.img`, creating it if it does not exist. The size of the image corresponds to size of the source partition.
+Start backup to `backup.img`, creating it if it does not exist. The size of the image corresponds to thje used size of the root partition, plus additional 256m for /boot and 500m reserve.
 ```
 RaspiBackup.sh start -c /path/to/backup.img
 ```
@@ -57,27 +58,27 @@ RaspiBackup.sh start /path/to/backup.img
 ```
 
 
-Mount the RPi's SD Image in `/mnt/backup.img`:
+Mount the RPi's Image in `/mnt/backup.img`:
 ```
 RaspiBackup.sh mount /path/to/backup.img /mnt/backup.img
 ```
 
-Unmount the SD Image from default mountdir (`/mnt/backup.img/`):
+Unmount the Image from default mountdir (`/mnt/backup.img/`):
 ```
 RaspiBackup.sh umount /path/to/backup.img
 ```
 
-show allocation of SD Image:
+show allocation of Image:
 ```
 RaspiBackup.sh showdf /path/to/backup.img
 ```
 
-increase the size of the SD Image by 1000M:
+increase the size of the Image by 1000M:
 ```
 RaspiBackup.sh resize  /path/to/backup.img
 ```
 
-increase the size of the SD Image by  a specific amount (here 2000M):
+increase the size of the Image by  a specific amount (here 2000M):
 ```
 RaspiBackup.sh resize -s 2000  /path/to/backup.img
 ```
