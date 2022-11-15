@@ -8,6 +8,11 @@ Refer to https://www.raspberrypi.org/documentation/installation/installing-image
 This script creates backups of the system on an SD card. It creates backups of the device from which the system was started. It doesn't matter whether the system was booted from an SD card or a USB drive.
 The size of the image will be calculated as the real size of the / partition plus 256m for /boot plus 500mb reserve (not the size of the whole device... like 30GB for a pendrive where only 4GB worth of root partition resides). This is really useful, if you run your system from a big partition residing on usb drive 
 
+:stop_sign: You may want to use this script for migrating to an external SSD. In this case you may end up with an MBR partitiontable on a 8TB SSD...  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  You may consider to change the line:  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested (comments are welcome)
+     
 ## Usage
 
 * RaspiBackup.sh _COMMAND_ _OPTION_ sdimage
