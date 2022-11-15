@@ -23,8 +23,7 @@
 # Size of bootpart in MB
 
 #
-#
-
+DEBUG=false
 # in case COLORS.sh is missing
 msgok() {
     echo -e "${TICK} ${1}${NOATT}"
@@ -56,15 +55,27 @@ do_create() {
         error "${IMAGE} has not been created or has zero size"
     fi
 
-    msg "Creating partitions on ${LOOPBACK}"
-    parted -s ${LOOPBACK} mktable msdos
-    parted -s ${LOOPBACK} mkpart primary fat32 4MiB ${BOOTSIZE}MiB
-    parted -s ${LOOPBACK} mkpart primary ext4 ${BOOTSIZE}MiB 100%
+    if [ "${PARTSCHEME}" == "GPT" ]; then
+        #
+        # Use this on your own risk!
+        #
+        msg "Creating partitions on ${LOOPBACK} using GTP scheme"
+        parted -s ${LOOPBACK} mktable gpt
+        parted -s ${LOOPBACK} mkpart "BOOT" fat32 4MiB ${BOOTSIZE}MiB
+        parted -s ${LOOPBACK} mkpart "ROOT" ext4 ${BOOTSIZE}MiB 100%
+        parted -s ${LOOPBACK} set 1 legacy_boot on
+    else
+        msg "Creating partitions on ${LOOPBACK}"
+        parted -s ${LOOPBACK} mktable msdos
+        parted -s ${LOOPBACK} mkpart primary fat32 4MiB ${BOOTSIZE}MiB
+        parted -s ${LOOPBACK} mkpart primary ext4 ${BOOTSIZE}MiB 100%
+        parted -s ${LOOPBACK} set 1 boot on
+    fi
+
     msg "Formatting partitions"
     partx --add ${LOOPBACK}
     mkfs.vfat -n BOOT -F32 ${LOOPBACK}p1
     mkfs.ext4 ${LOOPBACK}p2
-
 }
 
 change_bootenv() {
@@ -72,7 +83,8 @@ change_bootenv() {
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     local editmanual=false
-    local fstab_tmp=/tmp/fstab
+    local fstab_tmp=/tmp/fstab.$$
+    local cmdline_tmp=/tmp/cmdline.$$
     #
     # create a working copy of /etc/fstab
     #
@@ -80,25 +92,22 @@ change_bootenv() {
     #
     # assuming we have two partitions (/boot and /)
     #
+    local -r BOOTDEV=$(findmnt --output=SOURCE -n /boot) || error "Could not find device for /boot"
+    local -r ROOTDEV=$(findmnt --output=SOURCE -n /) || error "Could not find device for /"
 
-    #
-    #  Device mit findmnt ermitteln
-    #
-    #
-    local BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
+    local -r BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
         msg "Could not find PARTUUID of ${BOOTDEV}"
         editmanual=true
     }
-    local RootPARTUUID=$(lsblk -n -o PARTUUID "${ROOTDEV}") || {
+    local -r RootPARTUUID=$(lsblk -n -o PARTUUID "${ROOTDEV}") || {
         msg "Could not find PARTUUID of ${ROOTDEV}"
         editmanual=true
     }
-
-    local dstBootPARTUUID=$(lsblk -n -o PARTUUID "${LOOPBACK}p1") || {
+    local -r dstBootPARTUUID=$(lsblk -n -o PARTUUID "${LOOPBACK}p1") || {
         msg "Could not find PARTUUID of ${LOOPBACK}p1"
         editmanual=true
     }
-    local dstRootPARTUUID=$(lsblk -n -o PARTUUID "${LOOPBACK}p2") || {
+    local -r dstRootPARTUUID=$(lsblk -n -o PARTUUID "${LOOPBACK}p2") || {
         msg "Could not find PARTUUID of ${LOOPBACK}p2"
         editmanual=true
     }
@@ -120,16 +129,15 @@ change_bootenv() {
         cp $fstab_tmp ${MOUNTDIR}/etc/fstab
         msgok "PARTUUIDs changed successful in fstab"
     fi
-
     #
     # Changing /boot/cmdline.txt
     #
-    cmdline_tmp=/tmp/cmdline.txt
+    
     cp /boot/cmdline.txt $cmdline_tmp || {
         msgwarn "could not copy ${LOOPBACK}p1/cmdline.txt to $cmdline_tmp"
         editmanual=true
     }
-    ChangePARTUUID "${RootPARTUUID}" "${dstRootPARTUUID}" "${cmdline_tmp}"
+    Change_PARTUUID "${RootPARTUUID}" "${dstRootPARTUUID}" "${cmdline_tmp}"
 
     if ${editmanual}; then
         msgwarn "cmdline.txt cannot be changed automatically."
@@ -150,9 +158,9 @@ change_PARTUUID() {
         return 1
     }
 
-    local srcUUID="${1}"
-    local dstUUID="${2}"
-    local file="${3}"
+    local -r srcUUID="${1}"
+    local -r dstUUID="${2}"
+    local -r file="${3}"
 
     grep -q "PARTUUID=${srcUUID}" ${file} && {
         msg "Changeing PARTUUID from ${srcUUID} to ${dstUUID} in ${file}"
@@ -243,8 +251,8 @@ do_backup() {
             --exclude='var/swap ' \
             --exclude='home/*/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
+            --exclude='home/pi/.vscode-server/' \
             / ${MOUNTDIR}/
-
     else
         msg "Skipping rsync since ${MOUNTDIR} is not a mount point"
     fi
@@ -407,22 +415,25 @@ EOF
 #####################################################################################################
 # Main
 #####################################################################################################
-
+exec &> >(tee "${0%%.sh}.out")
 mypath=$(readlink -f "${0}")
+#
+TICK="[ok]"
+CROSS="[X] "
+INFO="[i]"
+WARN="[w]"
+QST="[?]"
+IDENT="$   "
 
 colors=${mypath%%${mypath##*/}}COLORS.sh
 [ -f ${colors} ] && . ${colors}
-exec &> >(tee "${0%%.sh}.out")
 
 # Make sure we have root rights
-if [[ $EUID != 0 ]]; then
-    error "Please run as root. Try sudo."
-fi
-
+[ ${EUID} -eq 0 ] || error "Please run as root. Try sudo."
 #
 # Check for dependencies
 #
-for c in dd losetup parted sfdisk partx mkfs.vfat mkfs.ext4 mountpoint rsync; do
+for c in dd losetup parted partx mkfs.vfat mkfs.ext4 mountpoint rsync lsblk; do
     command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
 done
 
@@ -451,7 +462,8 @@ while getopts ":czdflL:i:r:s:" opt; do
     d) opt_delete=1 ;;
     f) opt_force=1 ;;
     l) opt_log=1 ;;
-    L) opt_log=1
+    L)
+        opt_log=1
         LOG=${OPTARG}
         ;;
     r) RSIZE=${OPTARG} ;;
@@ -466,17 +478,14 @@ shift $((OPTIND - 1))
 # setting defaults if -i or -s is ommitted
 #
 
-declare -r BOOTDEV=$(findmnt --output=SOURCE -n /boot) || error "Could not find device for /boot"
-declare -r ROOTDEV=$(findmnt --output=SOURCE -n /)|| error "Could not find device for /"
-
-declare -r BOOTSIZE=250
-declare -r ROOTSIZE=$(df -m --output=used / | tail -1)|| error "size of / could not determined" 
+declare -r BOOTSIZE=256
+declare -r ROOTSIZE=$(df -m --output=used / | tail -1) || error "size of / could not determined"
 declare -r SIZE=${SIZEARG:-$((${BOOTSIZE} + ${ROOTSIZE} + 500))} || error "size of imagefile could not calculated"
 declare -r RSIZE=${RSIZE:-1000}
 declare -r BLOCKSIZE=1M
+declare -r PARTSCHEME="MBR"
 
-
-
+#
 # Preflight checks
 #
 # Read the sdimage path from command line
@@ -485,7 +494,7 @@ declare -r BLOCKSIZE=1M
 IMAGE=${1}
 [ -z "${IMAGE}" ] && error "No sdimage specified"
 
-# Check if sdimage exists
+# Check if image exists
 if [ ${opt_command} = umount ] || [ ${opt_command} = gzip ]; then
     [ -f "${IMAGE}" ] || error "${IMAGE} does not exist"
 else
@@ -522,7 +531,7 @@ fi
 #
 # Read the optional mountdir from command line
 #
-MOUNTDIR=${2}
+MOUNTDIR="${2}"
 if [ -z ${MOUNTDIR} ]; then
     MOUNTDIR=/mnt/$(basename "${IMAGE}")/
 else
@@ -538,11 +547,10 @@ else
         error "Default mount point ${MOUNTDIR} already exists"
     fi
 fi
-
+#####################################################################################################
 #
 #  All preflight checks done
 #
-
 #####################################################################################################
 #
 # Trap keyboard interrupt (ctrl-c)
