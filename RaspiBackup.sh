@@ -137,7 +137,7 @@ change_bootenv() {
         msgwarn "could not copy ${LOOPBACK}p1/cmdline.txt to $cmdline_tmp"
         editmanual=true
     }
-    Change_PARTUUID "${RootPARTUUID}" "${dstRootPARTUUID}" "${cmdline_tmp}"
+    change_PARTUUID "${RootPARTUUID}" "${dstRootPARTUUID}" "${cmdline_tmp}"
 
     if ${editmanual}; then
         msgwarn "cmdline.txt cannot be changed automatically."
