@@ -12,6 +12,14 @@ The size of the image will be calculated as the real size of the / partition plu
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  You may consider to change the line:  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested (comments are welcome)
+
+:bulb: In case you need to restore a SSD drive:  
+- restore to a SD card 
+- boot from this SD card 
+- mount your SSD boot partition and the SSD root partition  
+- copy ```/``` to the SSD root partition  omitting ```/boot``` e.g. ```rsync -aEvx --del --exclude='/boot/**' / [mountdir of ssd root]```  
+- copy the content of ```/boot``` to the SSD boot partition ```cp -a /boot/*  [mountdir of ssd boot]```  
+
      
 ## Usage
 
