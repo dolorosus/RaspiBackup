@@ -5,12 +5,13 @@ Refer to https://www.raspberrypi.org/documentation/installation/installing-image
 
 **Read this text to the end, before use!**
 
-This script creates system backup to an SD card. It creates backups of the device where the system was booted. It does not matter if the system was started from an SD card or USB stick. The size of the image will be calculated as the real size of the / partition plus 256m for /boot plus 500mb reserve (not the size of the whole device... like 30GB for a pendrive where only 4GB worth of root partition resides). It is really helpful, if you run your system from a large partition residing on a SSD drive.
+This script creates system backup to an image file. It creates backups of the device where the system was booted. It does not matter if the system was started from an SD card or a SSD drive. The size of the image will be calculated as the real size of the / partition plus 256m for /boot plus 500mb reserve (not the size of the whole device... like 30GB for a SSD Drive where only 4GB worth of root partition resides).  
+It is really helpful, if you run your system from a large partition residing on a SSD drive.
 
 :stop_sign: You may want to use this script for migrating to an external SSD. In this case you may end up with an MBR partitiontable on a 8TB SSD...  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  You may consider to change the line:  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested (comments are welcome)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested, but seems to work well (comments are welcome).
 
 :bulb: In case you need to restore a SSD drive:  
 - restore to a SD card 
