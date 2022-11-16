@@ -1,5 +1,5 @@
 # RaspiBackup.sh
-Script to backup a Raspberry Pi SDCARD to a file. 
+Script to backup a Raspberry Pi SDCARD to an imagefile. 
 The resulting file can be installed to a sdcard. 
 Refer to https://www.raspberrypi.org/documentation/installation/installing-images/README.md  
 
@@ -104,13 +104,13 @@ Note: Image compression is deprecated, a better alternative is to use filesystem
 
 This script takes a backup while the source partitions are mounted and in use. The resulting imagefile will be inconsistent!
 
-To minimize inconsistencies, you should terminate as many services as possible before starting the backup.   
-You may put the system to rescue mode (beware: new SSH logins aren't possible in rescue mode), take the backup and put your system back to default mode).
-An example is provided as [WeeklyBackup.sh](https://github.com/dolorosus/RaspiBackup/blob/master/WeeklyBackup.sh).
+To reduce inconsistencies, you need to terminate as many services as possible before you start backing up.
+You can put the system in rescue mode (be careful: new SSH connections are not possible in rescue mode), take the backup and put your system back in default mode).  
+A sample is given as WeeklyBackup.sh. [WeeklyBackup.sh](https://github.com/dolorosus/RaspiBackup/blob/master/WeeklyBackup.sh).
 
 ### Recommendation:
 
-Use a file system for the target that can handle snapshots (e.g. BTRFS). 
+Use a filesystem for the target that can handle snapshots (e.g. BTRFS). 
 Creating a snapshot, before starting a backup,  results in a space efficient versioning backup.
 
 
