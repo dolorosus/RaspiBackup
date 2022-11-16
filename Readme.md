@@ -15,7 +15,7 @@ It is really helpful, if you run your system from a large partition residing on 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested, but seems to work well (comments are welcome).
 
-:bulb: In case you need to restore to a SSD drive:  
+:bulb: if you wish to restore to an ssd which contains additional partitions :  
 - restore to a SD card 
 - boot from this SD card 
 - mount your SSD boot partition and the SSD root partition  
@@ -23,6 +23,7 @@ It is really helpful, if you run your system from a large partition residing on 
 - copy the content of ```/boot``` to the SSD boot partition e.g. ```cp -a /boot/*  [mountdir of ssd boot]```  
 - get the PARTUUID of [mountdir of ssd boot] and [mountdir of ssd root]   
     ```
+    bash
     BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE [mountdir of ssd boot])
     ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE [mountdir of ssd root])
     BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}")
