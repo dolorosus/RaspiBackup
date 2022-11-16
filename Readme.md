@@ -102,7 +102,9 @@ Note: Image compression is deprecated, a better alternative is to use filesystem
 
 This script takes a backup while the source partitions are mounted and in use. The resulting imagefile will be inconsistent!
 
-To minimize inconsistencies, you should terminate as many services as possible before starting the backup. An example is provided as [WeeklyBackup.sh](https://github.com/dolorosus/RaspiBackup/blob/master/WeeklyBackup.sh).
+To minimize inconsistencies, you should terminate as many services as possible before starting the backup.   
+You may put the system to rescue mode (beware: new SSH logins aren't possible in rescue mode), take the backup and put your system back to default mode).
+An example is provided as [WeeklyBackup.sh](https://github.com/dolorosus/RaspiBackup/blob/master/WeeklyBackup.sh).
 
 ### Recommendation:
 
