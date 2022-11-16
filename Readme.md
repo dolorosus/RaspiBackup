@@ -32,7 +32,7 @@ It is really helpful, if you run your system from a large partition residing on 
     echo "Root PARTUUID_:${RootPARTUUID}"
     ```
 - check/change PARTUUID in ```[mountdir of ssd boot]/cmdline.txt``` to ```${RootPARTUUID}```
-- check/changechange the PARTUUIDS of ```/``` and ```/boot``` in ```[mountdir of ssd root]/etc/fstab``` to ```${RootPARTUUID}``` and ```${BootPARTUUID}```
+- check/change the PARTUUIDS of ```/``` and ```/boot``` in ```[mountdir of ssd root]/etc/fstab``` to ```${RootPARTUUID}``` and ```${BootPARTUUID}```
 
      
 ## Usage
