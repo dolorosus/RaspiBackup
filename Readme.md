@@ -15,7 +15,7 @@ It is really helpful, if you run your system from a large partition residing on 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested, but seems to work well (comments are welcome).
 
-:bulb: In case you need to restore a SSD drive:  
+:bulb: In case you need to restore to a SSD drive:  
 - restore to a SD card 
 - boot from this SD card 
 - mount your SSD boot partition and the SSD root partition  
@@ -30,8 +30,8 @@ It is really helpful, if you run your system from a large partition residing on 
     echo "Boot PARTUUID_:${BootPARTUUID}"
     echo "Root PARTUUID_:${RootPARTUUID}"
     ```
-- change PARTUUID in ```[mountdir of ssd boot]/cmdline.txt``` to ```${RootPARTUUID}```
-- change the PARTUUIDS of ```/``` and ```/boot``` in ```[mountdir of ssd root]/etc/fstab``` to ```${RootPARTUUID}``` and ```${BootPARTUUID}```
+- check/change PARTUUID in ```[mountdir of ssd boot]/cmdline.txt``` to ```${RootPARTUUID}```
+- check/changechange the PARTUUIDS of ```/``` and ```/boot``` in ```[mountdir of ssd root]/etc/fstab``` to ```${RootPARTUUID}``` and ```${BootPARTUUID}```
 
      
 ## Usage
