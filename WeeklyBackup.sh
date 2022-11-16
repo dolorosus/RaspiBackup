@@ -22,7 +22,7 @@
 #
 
 exec &> >(tee "${0%%.sh}.out")
-MYANME=${0##*/}
+MYNAME=${0##*/}
 ORGNAME=$(readlink -f "${0}")
 SCRIPTDIR=${ORGNAME%%${ORGNAME##*/}}
 
