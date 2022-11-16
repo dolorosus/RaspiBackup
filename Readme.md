@@ -20,7 +20,18 @@ It is really helpful, if you run your system from a large partition residing on 
 - boot from this SD card 
 - mount your SSD boot partition and the SSD root partition  
 - copy ```/``` to the SSD root partition  omitting ```/boot``` e.g. ```rsync -aEvx --del --exclude='/boot/**' / [mountdir of ssd root]```  
-- copy the content of ```/boot``` to the SSD boot partition ```cp -a /boot/*  [mountdir of ssd boot]```  
+- copy the content of ```/boot``` to the SSD boot partition e.g. ```cp -a /boot/*  [mountdir of ssd boot]```  
+- get the PARTUUID of [mountdir of ssd boot] and [mountdir of ssd root]   
+    ```
+    BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE [mountdir of ssd boot])
+    ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE [mountdir of ssd root])
+    BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}")
+    RootPARTUUID=$(lsblk -n -o PARTUUID "${ROOTDEV}")
+    echo "Boot PARTUUID_:${BootPARTUUID}"
+    echo "Root PARTUUID_:${RootPARTUUID}"
+    ```
+- change PARTUUID in ```[mountdir of ssd boot]/cmdline.txt``` to ```${RootPARTUUID}```
+- change the PARTUUIDS of ```/``` and ```/boot``` in ```[mountdir of ssd root]/etc/fstab``` to ```${RootPARTUUID}``` and ```${BootPARTUUID}```
 
      
 ## Usage
