@@ -23,9 +23,9 @@ It is really helpful, if you run your system from a large partition residing on 
 - copy the content of ```/boot``` to the SSD boot partition e.g. ```cp -a /boot/*  [mountdir of ssd boot]```  
 - get the PARTUUID of [mountdir of ssd boot] and [mountdir of ssd root]   
     ```
-    bash
-    BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE [mountdir of ssd boot])
-    ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE [mountdir of ssd root])
+    sudo bash
+    BOOTDEV=$(findmnt  -c -n --uniq -o SOURCE [mountdir of ssd boot])
+    ROOTDEV=$(findmnt  -c -n --uniq -o SOURCE [mountdir of ssd root])
     BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}")
     RootPARTUUID=$(lsblk -n -o PARTUUID "${ROOTDEV}")
     echo "Boot PARTUUID_:${BootPARTUUID}"
