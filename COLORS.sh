@@ -48,9 +48,9 @@ msgok () {
 }
 msg () {
   if [[ -z ${1} ]] ; then
-    echo -e "${NOATT}"
+        echo -e "${NOATT}"
   else
-  echo -e "${INFO} ${1}${NOATT}"
+        echo -e "${INFO} ${1}${NOATT}"
   fi
 }
 msgwarn () {
