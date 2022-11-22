@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # Define some fancy colors, but only if connected to a terminal.
 # Thus output to file will be not cluttered anymore
@@ -31,23 +32,26 @@
 	NOATT=""
 }
 
-TICK="[${GREEN}✓${NOATT}]${GREEN}"
-CROSS="[${RED}✗${NOATT}]${RED}"
-INFO="[i]${NOATT}"
-WARN="[${YELLOW}w${NOATT}]${YELLOW}"
+TICK="${NOATT}[${GREEN}✓${NOATT}]${GREEN}"
+CROSS="${NOATT}[${RED}✗${NOATT}]${RED}"
+INFO="[I]${NOATT}"
+WARN="${NOATT}[${YELLOW}W${NOATT}]${YELLOW}"
 QST="[?]"
 IDENT="${NOATT}   "
+
+MYNAME="${0##*/}"
+
+
 
 msgok () {
     echo -e "${TICK} ${1}${NOATT}\n"
 }
-
 msg () {
-  [ -z "${1}" ] && {
+  if [[ -z ${1} ]] ; then
     echo -e "${NOATT}"
-    return 0
-    }
+  else
   echo -e "${INFO} ${1}${NOATT}"
+  fi
 }
 msgwarn () {
     echo -e "${WARN} ${1}${NOATT}"

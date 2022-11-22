@@ -45,8 +45,6 @@ snapdel() {
         msg "delete snapshot ${s}"
         btrfs subvol delete "${s}"
     done
-
-
 }
 
 # snap  snappath snappath2 mark keep snapname
@@ -120,10 +118,6 @@ snapremote() {
     msg "Syncing ${rpath}"
     ssh ${ruser} btrfs filesystem sync "${rpath}"
 
-    #
-    # Hier ganz bewusst ${MARK} NICHT genutzt,
-    # es wird IMMER auf den letzten snapshot aufgebaut
-    #
     msg "looking for parent"
     parent=$(ssh ${ruser} ls -1 "${rpath}" | tail -1)
     msg "Parent is_:${parent}"
@@ -136,7 +130,7 @@ snapremote() {
     }
     msg "No common parent found. Complete snapshot is sent."
     #
-    # send ohne Parent
+    # send without parent
     #
     msg "btrfs send ${spath}/${sname}@${mark}|ssh ${ruser} btrfs receive ${rpath}"
     btrfs send "${spath}/${sname}@${mark}" | ssh ${ruser} btrfs receive "${rpath}"

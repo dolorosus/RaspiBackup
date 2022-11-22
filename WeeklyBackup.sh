@@ -22,22 +22,16 @@
 #
 
 exec &> >(tee "${0%%.sh}.out")
-declare -r MYNAME=${0##*/}
-declare -r ORGNAME=$(readlink -f "${0}")
-declare -r scriptbase="${ORGNAME%%${ORGNAME##*/}}"
-declare -r colors="${scriptbase}/COLORS.sh"
-declare -r snapfunc="${scriptbase}/snapFunc.sh"
+MYNAME=${0##*/}
+ORGNAME=$(readlink -f "${0}")
+SCRIPTDIR=${ORGNAME%%${ORGNAME##*/}}
 
-[ -f  ${snapfunc} ] || {
-    echo "snapfunc.sh (${snapfunc}) not found"
-    exit 1
-}
+colors="${SCRIPTDIR}COLORS.sh"
+[ -f "${colors}" ] && source ${colors}
 
-[ -f "${colors}" ] && {
-    source "${colors}"
-    msgheader "${MYNAME}"
-}
-
+snapfunc="${SCRIPTDIR}snapFunc.sh"
+[ -f "${snapfunc}" ] || errexit 21
+source "${snapfunc}"
 
 setup() {
 
@@ -46,7 +40,6 @@ setup() {
     export destvol="/x6/"
     export destpath="${destvol}/BACKUPS/system"
     export snappath="${destvol}/BACKUPS/.snapshots/system"
-    export rempath="/media/usbSyncth/.snapshots/Raspi4Images"
 
     export bckprefix="MyRaspi4"
     export destpatt="${bckprefix}-2*_[0-9]*.img"
@@ -57,8 +50,6 @@ setup() {
     export mark="manual"
     export versions=7
 
-    export remusr="root@192.168.26.3"
-
 }
 
 msg() {
@@ -68,19 +59,8 @@ msgok() {
     echo "${TICK} ${1}${NOATT}"
 }
 
-progress() {
-    Message=${1:-"Moment..."}
-    [ -t 1 ] && {
-        PCT=0
-        (
-            while [ $PCT != 100 ]; do
-                PCT=$(($PCT + 10))
-                echo $PCT
-                sleep 0.6s
-            done
-        ) | whiptail --title "GAUGE" --gauge "${Message}" 10 70 0
-    }
-}
+colors=${ORGNAME%%${ORGNAME##*/}}COLORS.sh
+[ -f ${colors} ] && . ${colors}
 
 errexit() {
 
@@ -193,18 +173,11 @@ do_backup() {
 # Main
 # ===============================================================================================================
 #
-colors="${SCRIPTDIR}COLORS.sh"
-[ -f "${colors}" ] && source ${colors}
-
-setup "${1}"
-msgheader "${MYNAME}"
- 
-#
 # Please, do not disturb
 #
 trap "progs start" SIGTERM SIGINT
 
-
+setup "${1}"
 #
 # Bailout in case of uncaught error
 #
@@ -228,14 +201,8 @@ progs stop
     msg "get devicename for ${destvol}"
     destdev=$(findmnt -o SOURCE --uniq --noheadings "${destvol}")
 
-    #    msg "unmount ${destvol}"
-    #    umount ${destvol}
-
     msg "checking mounted filesystem on ${destdev} "
     btrfs check --readonly --force --progress "${destdev}"
-
-    #    msg "mounting ${destdev} ${destvol}"
-    #    mount ${destdev} ${destvol}
 
     msg "verify block checksums on ${destvol}"
     btrfs scrub start -B ${destvol}
@@ -267,8 +234,7 @@ do_backup
 msg "Creating a snapshot of current backupfile and deleting the oldest snapshot"
 #
 snap "${destpath}" "${snappath}" "${mark}" ${versions} "${stamp}"
-snapremote "${remusr}" "${snappath}" "${rempath}" "${mark}" ${versions} "${stamp}"
-#
+
 msgok "All's Well That Ends Well"
 #
 exit 0

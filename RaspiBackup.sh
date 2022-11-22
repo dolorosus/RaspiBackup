@@ -92,8 +92,8 @@ change_bootenv() {
     #
     # assuming we have two partitions (/boot and /)
     #
-    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /boot) || error "Could not find device for /boot"
-    local -r ROOTDEV=$(ffindmnt --uniq --canonicalize --noheadings --output=SOURCE /) || error "Could not find device for /"
+    local -r BOOTDEV=$(findmnt --output=SOURCE -n /boot) || error "Could not find device for /boot"
+    local -r ROOTDEV=$(findmnt --output=SOURCE -n /) || error "Could not find device for /"
 
     local -r BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
         msg "Could not find PARTUUID of ${BOOTDEV}"
@@ -239,7 +239,8 @@ do_backup() {
         msg "Starting rsync backup of / and /boot/ to ${MOUNTDIR}"
         msg "rsync /boot/ ${MOUNTDIR}/boot/"
         rsync ${rsyncopt} /boot/ ${MOUNTDIR}/boot/
-        msg "\nrsync / to ${MOUNTDIR}"
+        msg ""
+        msg "rsync / to ${MOUNTDIR}"
         rsync ${rsyncopt} --exclude='.gvfs/**' \
             --exclude='tmp/**' \
             --exclude='proc/**' \
@@ -474,14 +475,15 @@ while getopts ":czdflL:i:r:s:" opt; do
 done
 shift $((OPTIND - 1))
 #
-# setting defaults 
+# setting defaults if -i or -s is ommitted
 #
+
 declare -r BOOTSIZE=256
 declare -r ROOTSIZE=$(df -m --output=used / | tail -1) || error "size of / could not determined"
 declare -r SIZE=${SIZEARG:-$((${BOOTSIZE} + ${ROOTSIZE} + 500))} || error "size of imagefile could not calculated"
 declare -r RSIZE=${RSIZE:-1000}
 declare -r BLOCKSIZE=1M
-declare -r PARTSCHEME="GPT"
+declare -r PARTSCHEME="MBR"
 
 #
 # Preflight checks
@@ -489,7 +491,7 @@ declare -r PARTSCHEME="GPT"
 # Read the sdimage path from command line
 #   and check for existance
 #
-declare -r IMAGE=${1}
+IMAGE=${1}
 [ -z "${IMAGE}" ] && error "No sdimage specified"
 
 # Check if image exists
@@ -532,7 +534,6 @@ fi
 MOUNTDIR="${2}"
 if [ -z ${MOUNTDIR} ]; then
     MOUNTDIR=/mnt/$(basename "${IMAGE}")/
-    readonly MOUNTDIR
 else
     opt_mountdir=1
     [ -d ${MOUNTDIR} ] || error "Mount point ${MOUNTDIR} does not exist"
@@ -546,7 +547,6 @@ else
         error "Default mount point ${MOUNTDIR} already exists"
     fi
 fi
-
 #####################################################################################################
 #
 #  All preflight checks done
