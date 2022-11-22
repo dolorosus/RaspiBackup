@@ -21,18 +21,6 @@
 #	your filesystem structure.
 #
 
-exec &> >(tee "${0%%.sh}.out")
-MYNAME=${0##*/}
-ORGNAME=$(readlink -f "${0}")
-SCRIPTDIR=${ORGNAME%%${ORGNAME##*/}}
-
-colors="${SCRIPTDIR}COLORS.sh"
-[ -f "${colors}" ] && source ${colors}
-
-snapfunc="${SCRIPTDIR}snapFunc.sh"
-[ -f "${snapfunc}" ] || errexit 21
-source "${snapfunc}"
-
 setup() {
 
     export skipcheck=${1:-"noskip"}
@@ -58,9 +46,6 @@ msg() {
 msgok() {
     echo "${TICK} ${1}${NOATT}"
 }
-
-colors=${ORGNAME%%${ORGNAME##*/}}COLORS.sh
-[ -f ${colors} ] && . ${colors}
 
 errexit() {
 
@@ -172,6 +157,20 @@ do_backup() {
 # ===============================================================================================================
 # Main
 # ===============================================================================================================
+
+exec &> >(tee "${0%%.sh}.out")
+
+MYNAME=${0##*/}
+ORGNAME=$(readlink -f "${0}")
+SCRIPTDIR=${ORGNAME%%${ORGNAME##*/}}
+
+snapfunc="${SCRIPTDIR}snapFunc.sh"
+[ -f "${snapfunc}" ] || errexit 21
+source "${snapfunc}"
+
+colors=${ORGNAME%%${ORGNAME##*/}}COLORS.sh
+[ -f ${colors} ] && . ${colors}
+
 #
 # Please, do not disturb
 #
