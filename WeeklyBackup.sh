@@ -21,23 +21,43 @@
 #	your filesystem structure.
 #
 
-exec &> >(tee "${0}.out")
+exec &> >(tee "${0%%.sh}.out")
+declare -r MYNAME=${0##*/}
+declare -r ORGNAME=$(readlink -f "${0}")
+declare -r scriptbase="${ORGNAME%%${ORGNAME##*/}}"
+declare -r colors="${scriptbase}/COLORS.sh"
+declare -r snapfunc="${scriptbase}/snapFunc.sh"
+
+[ -f  ${snapfunc} ] || {
+    echo "snapfunc.sh (${snapfunc}) not found"
+    exit 1
+}
+
+[ -f "${colors}" ] && {
+    source "${colors}"
+    msgheader "${MYNAME}"
+}
+
 
 setup() {
+
     export skipcheck=${1:-"noskip"}
     export stamp=$(date +%y%m%d_%H%M%S)
-    export destvol="/mnt/USB64"
-    export destpath="${destvol}/BACKUPS"
-    export snappath="${destvol}/.snapshots/BACKUPS"
+    export destvol="/x6/"
+    export destpath="${destvol}/BACKUPS/system"
+    export snappath="${destvol}/BACKUPS/.snapshots/system"
+    export rempath="/media/usbSyncth/.snapshots/Raspi4Images"
+
     export bckprefix="MyRaspi4"
     export destpatt="${bckprefix}-2*_[0-9]*.img"
     export bcknewname="${bckprefix}-${stamp}.img"
     export tmppre="#"
 
     export bckscript="/home/pi/scripts/RaspiBackup.sh"
-    export snapscript="/home/pi/scripts/btrfs-snapshot-rotation.sh"
     export mark="manual"
     export versions=7
+
+    export remusr="root@192.168.26.3"
 
 }
 
@@ -48,40 +68,46 @@ msgok() {
     echo "${TICK} ${1}${NOATT}"
 }
 
-[ -f ./COLORS.sh ] && source ./COLORS.sh
+progress() {
+    Message=${1:-"Moment..."}
+    [ -t 1 ] && {
+        PCT=0
+        (
+            while [ $PCT != 100 ]; do
+                PCT=$(($PCT + 10))
+                echo $PCT
+                sleep 0.6s
+            done
+        ) | whiptail --title "GAUGE" --gauge "${Message}" 10 70 0
+    }
+}
 
 errexit() {
 
     case "${1}" in
     1)
         echo "${CROSS} You have to be root to run this script${NOATT}"
-        exit ${1}
         ;;
 
     10)
         echo "${CROSS} More than one backupfile according to ${destpath}/${destpatt} found."
         echo "Can't decide which one to use.${NOATT}"
-        exit ${1}
         ;;
 
     11)
         echo "${CROSS} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
-        exit ${1}
         ;;
 
     12)
         echo "${CROSS} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
-        exit ${1}
         ;;
 
     20)
         echo "${CROSS} No executable file $bckscript found.${NOATT}"
-        exit ${1}
         ;;
 
     21)
-        echo "${CROSS} No executable file $snapscript found.${NOATT}"
-        exit ${1}
+        echo "${CROSS} Snapshot functions $snapscript not found.${NOATT}"
         ;;
 
     25)
@@ -89,35 +115,43 @@ errexit() {
         ;;
 
     30)
-        echo "${CROSS}vsomething went wrong..."
+        echo "${CROSS} something went wrong..."
         echo "the incomplete backupfile is named: ${destpath}/${tmppre}${bcknewname}"
         echo "Resolve the issue, rename the the backupfile and restart"
         echo "Good luck!${NOATT}"
-        exit ${1}
+
         ;;
 
     *)
         echo "${CROSS} An unknown error occured${NOATT}"
-        exit 99
+        set -- 99
         ;;
     esac
+
+    systemctl default
+    exit ${1}
 }
 
 progs() {
 
     local action=${1:=start}
-    local grace=60
+    local grace=20
     local setopt=$-
 
     [ "${action}" == "stop" ] && {
         msg "System is put to rescue mode."
-        systemctl isolate rescue
+        systemctl rescue
     }
     [ "${action}" == "start" ] && {
         msg "System is put to default mode."
-        systemctl isolate default
+        systemctl default
     }
     msg "waiting for ${grace}s"
+    #progress "waiting for ${grace}s"
+    for ((i = 0; i <= ${grace}; i++)); do
+        echo -n '.'
+    done
+    echo ''
     for ((i = 0; i <= ${grace}; i++)); do
         echo -n '.'
         sleep 1s
@@ -126,30 +160,6 @@ progs() {
     msgok "done."
 
     return 0
-}
-
-do_inital_backup() {
-
-    #
-    # Determine how many blocks the backupfile needs and add some blocks for safety
-    #
-    local creopt="-c -s $(($(df -k --output=used / | tail -1) / 1024 + 550))"
-    progs stop
-
-    msg "starting backup_: ${bckscript} start ${creopt} ${destpath}/${tmppre}${bcknewname}"
-    backup="ko"
-    ${bckscript} start ${creopt} "${destpath}/${tmppre}${bcknewname}" && {
-        msg "moving  ${destpath}/${tmppre}bcknewname} to ${destpath}/${bcknewname}"
-        mv "${destpath}/${tmppre}${bcknewname}" "${destpath}/${bcknewname}"
-        msgok "Backup successful"
-        msg "Backupfile is_: ${destpath}/${bcknewname}"
-        backup="ok"
-    }
-
-    progs start
-
-    [ "${backup}" == "ok" ] && return 0
-    errexit 30
 }
 
 do_backup() {
@@ -183,11 +193,17 @@ do_backup() {
 # Main
 # ===============================================================================================================
 #
+colors="${SCRIPTDIR}COLORS.sh"
+[ -f "${colors}" ] && source ${colors}
+
+setup "${1}"
+msgheader "${MYNAME}"
+ 
+#
 # Please, do not disturb
 #
 trap "progs start" SIGTERM SIGINT
 
-setup "${1}"
 
 #
 # Bailout in case of uncaught error
@@ -200,24 +216,26 @@ msg "System will be isolated."
 progs stop
 
 [ "$(ls -1 ${destpath}/${destpatt} | wc -l)" == "0" ] && {
-    do_inital_backup
+    msg "No backupfile found."
+    msg "creating a new one"
+    do_backup "-c"
     progs start
     exit 0
 }
 
-[ x"${skipcheck}" == x"noskip" ] && {
+[ "${skipcheck}" = "noskip" ] && {
     msg "some checks"
     msg "get devicename for ${destvol}"
-    destdev=$(grep "${destvol}" /etc/mtab | cut -d \  -f 1)
+    destdev=$(findmnt -o SOURCE --uniq --noheadings "${destvol}")
 
-    msg "unmount ${destvol}"
-    umount ${destvol}
+    #    msg "unmount ${destvol}"
+    #    umount ${destvol}
 
-    msg "checking filesystem on ${destdev}"
-    btrfs check "${destdev}"
+    msg "checking mounted filesystem on ${destdev} "
+    btrfs check --readonly --force --progress "${destdev}"
 
-    msg "mounting ${destdev} ${destvol}"
-    mount ${destdev} ${destvol}
+    #    msg "mounting ${destdev} ${destvol}"
+    #    mount ${destdev} ${destvol}
 
     msg "verify block checksums on ${destvol}"
     btrfs scrub start -B ${destvol}
@@ -233,14 +251,9 @@ bckfile="$(ls -1 ${destpath}/${destpatt})"
 msg "some more checks..."
 #
 [ -x "${bckscript}" ] || errexit 20
-[ -x "${snapscript}" ] || errexit 21
 
 msgok "All preflight checks successful"
 #
-msg "Createing a snapshot of current backupfile and deleteing the oldest snapshot"
-#
-${snapscript} ${destpath} ${destvol}/.snapshots/BACKUPS ${mark} ${versions}
-
 #
 msg "Rotate the logfiles"
 #
@@ -251,6 +264,10 @@ msg "Finally start the backup"
 #
 do_backup
 
+msg "Creating a snapshot of current backupfile and deleting the oldest snapshot"
+#
+snap "${destpath}" "${snappath}" "${mark}" ${versions} "${stamp}"
+snapremote "${remusr}" "${snappath}" "${rempath}" "${mark}" ${versions} "${stamp}"
 #
 msgok "All's Well That Ends Well"
 #
