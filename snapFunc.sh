@@ -12,7 +12,7 @@ msg() {
 
 snap() {
 
-    [ -z ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     local src="${1:-$SRCPATH}"
     local spath="${2:-$SNAPPATH}"
@@ -30,6 +30,8 @@ snap() {
 }
 
 snapdel() {
+
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     local src="${1:-$SRCPATH}"
     local spath="${2:-$SNAPPATH}"
@@ -55,7 +57,7 @@ snapdel() {
 #
 snapsend() {
 
-    [ -z ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     local spath="${1:-$SNAPPATH}"
     local spath2="${2:-$SNAPPATH2}"
@@ -93,7 +95,7 @@ snapsend() {
 
 snapremote() {
 
-    [ -z ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     local ruser="${1:-$REMOTEUSER}"
     local spath="${2:-$SNAPPATH}"

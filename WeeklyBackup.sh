@@ -5,8 +5,7 @@
 #	Before the backup takes place a snapshot of the current backupfile is taken.
 #	This is done by calling a script $snapscript.
 #	Using a snapshot supporting filesystem (btrfs,xfs...) is recommended
-#	for the backupdestination. If BTRFS is used you may have a look to
-#           https://github.com/dolorosus/btrfs-snapshot-rotation
+#	for the backupdestination. Refer to snapfunc.sh
 #
 #	After the snapshot is taken, the system will be isolated to rescue mode.
 #   Thus results in:
@@ -22,6 +21,8 @@
 #
 
 setup() {
+
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     export skipcheck=${1:-"noskip"}
     export stamp=$(date +%y%m%d_%H%M%S)
@@ -99,6 +100,8 @@ errexit() {
 
 progs() {
 
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
+
     local action=${1:=start}
     local grace=20
     local setopt=$-
@@ -128,6 +131,8 @@ progs() {
 }
 
 do_backup() {
+
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     local creopt="${1}"
 
@@ -168,8 +173,8 @@ snapfunc="${SCRIPTDIR}snapFunc.sh"
 [ -f "${snapfunc}" ] || errexit 21
 source "${snapfunc}"
 
-colors=${ORGNAME%%${ORGNAME##*/}}COLORS.sh
-[ -f ${colors} ] && . ${colors}
+colors="${SCRIPTDIR}COLORS.sh"
+[ -f ${colors} ] && source ${colors}
 
 #
 # Please, do not disturb
@@ -201,10 +206,7 @@ progs stop
     destdev=$(findmnt -o SOURCE --uniq --noheadings "${destvol}")
 
     msg "checking mounted filesystem on ${destdev} "
-    btrfs check --readonly --force --progress "${destdev}"
-
-    msg "verify block checksums on ${destvol}"
-    btrfs scrub start -B ${destvol}
+    btrfs check --readonly --force --check-data-csum  --progress "${destdev}"
 }
 
 [ "$(ls -1 ${destpath}/${destpatt} | wc -l)" == "1" ] || errexit 10
