@@ -10,7 +10,7 @@ This is not the size of the entire device, as 30 GB for a SSD drive where only 4
  
 It is really helpful, if you run your system from a large partition residing on a SSD drive.
 
-:stop_sign: You may want to use this script for migrating to an external SSD. In this case you may end up with an MBR partitiontable on a 8TB SSD...  
+:stop_sign: You may want to use this script for migrating to an external SSD. In this case you may end up with an MBR partition table on a 8TB SSD...  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  You may consider to change the line:  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested, but seems to work well (comments are welcome).
