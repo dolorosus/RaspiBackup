@@ -15,7 +15,7 @@ It is really helpful, if you run your system from a large partition residing on 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested, but seems to work well (comments are welcome).
 
- :stop_sign: if you wish to restore to an ssd which contains additional partitions, using an imager will destroy theese additional partitions:exclamation:  
+ :stop_sign: If you wish to restore to an ssd which contains additional partitions, using an imager will destroy theese additional partitions:exclamation:  
 
 :bulb: If your destination contains other partitions you want to keep, do the following:
    
