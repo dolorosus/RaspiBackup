@@ -10,15 +10,18 @@ This is not the size of the entire device, as 30 GB for a SSD drive where only 4
  
 It is really helpful, if you run your system from a large partition residing on a SSD drive.
 
-:stop_sign: You may want to use this script for migrating to an external SSD. In this case you may end up with an MBR partition table on a 8TB SSD...  
+:warning: You may want to use this script for migrating to an external SSD. In this case you may end up with an MBR partition table on a 8TB SSD...  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  You may consider to change the line:  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested, but seems to work well (comments are welcome).
 
-:bulb: if you wish to restore to an ssd which contains additional partitions :  
+ :stop_sign: if you wish to restore to an ssd which contains additional partitions, using an imager will destroy theese additional partitions:exclamation:  
+
+:bulb: If your destination contains other partitions you want to keep, do the following:
+   
 - restore to a SD card 
 - boot from this SD card 
-- mount your SSD boot partition and the SSD root partition  
+- mount your SSD boot partition and the SSD root partition:
 - copy ```/``` to the SSD root partition  omitting ```/boot``` e.g. ```rsync -aEvx --del --exclude='/boot/**' / [mountdir of ssd root]```  
 - copy the content of ```/boot``` to the SSD boot partition e.g. ```cp -a /boot/*  [mountdir of ssd boot]```  
 - get the PARTUUID of [mountdir of ssd boot] and [mountdir of ssd root]   
@@ -117,7 +120,7 @@ Note: Image compression is deprecated, a better alternative is to use filesystem
 This script takes a backup while the source partitions are mounted and in use. The resulting imagefile will be inconsistent!
 
 To reduce inconsistencies, you need to terminate as many services as possible before you start backing up.
-You can put the system in rescue mode (be careful: new SSH connections are not possible in rescue mode), take the backup and put your system back in default mode).  
+You can put the system in rescue mode (be careful: new SSH connections are not possible in rescue mode), take the backup and put your system back in default mode.  
 A sample is given as WeeklyBackup.sh. [WeeklyBackup.sh](https://github.com/dolorosus/RaspiBackup/blob/master/WeeklyBackup.sh).
 
 ### Recommendation:
