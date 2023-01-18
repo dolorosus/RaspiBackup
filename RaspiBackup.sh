@@ -20,10 +20,7 @@
 #
 #
 # Defaults
-# Size of bootpart in MB
 
-#
-DEBUG=false
 # in case COLORS.sh is missing
 msgok() {
     echo -e "${TICK} ${1}${NOATT}"
