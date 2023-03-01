@@ -246,9 +246,9 @@ do_backup() {
             --exclude='mnt/**' \
             --exclude='lost+found/**' \
             --exclude='var/swap ' \
-            --exclude='home/*/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
-            --exclude='home/pi/.vscode-server/' \
+            --exclude='home/*/.cache/**' \
+            --exclude='home/*/.vscode-server/**' \
             / ${MOUNTDIR}/
     else
         msg "Skipping rsync since ${MOUNTDIR} is not a mount point"
