@@ -426,7 +426,7 @@ colors=${mypath%%${mypath##*/}}COLORS.sh
 [ -f ${colors} ] && . ${colors}
 
 # Make sure we have root rights
-[ ${EUID} -eq 0 ] || error "Please run as root. Try sudo."
+[ ${EUID} -eq 0 ] || error "Sorry user I'm afraid I can't do this! Please run as root. Try sudo."
 #
 # Check for dependencies
 #
