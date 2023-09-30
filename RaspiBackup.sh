@@ -25,6 +25,7 @@
 #
 DEBUG=false
 
+
 # in case COLORS.sh is missing
 msgok() {
     echo -e "${TICK} ${1}${NOATT}"
@@ -93,6 +94,8 @@ change_bootenv() {
     #
     # assuming we have two partitions (/boot and /)
     #
+    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /boot) || error "Could not find device for /boot"
+    local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || error "Could not find device for /"
     local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /boot) || error "Could not find device for /boot"
     local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || error "Could not find device for /"
 
