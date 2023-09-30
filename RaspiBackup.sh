@@ -20,6 +20,10 @@
 #
 #
 # Defaults
+# Size of bootpart in MB
+
+#
+DEBUG=false
 
 # in case COLORS.sh is missing
 msgok() {
@@ -89,8 +93,8 @@ change_bootenv() {
     #
     # assuming we have two partitions (/boot and /)
     #
-    local -r BOOTDEV=$(findmnt --output=SOURCE -n /boot) || error "Could not find device for /boot"
-    local -r ROOTDEV=$(findmnt --output=SOURCE -n /) || error "Could not find device for /"
+    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /boot) || error "Could not find device for /boot"
+    local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || error "Could not find device for /"
 
     local -r BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
         msg "Could not find PARTUUID of ${BOOTDEV}"
@@ -246,9 +250,9 @@ do_backup() {
             --exclude='mnt/**' \
             --exclude='lost+found/**' \
             --exclude='var/swap ' \
-            --exclude='var/cache/apt/archives/**' \
             --exclude='home/*/.cache/**' \
-            --exclude='home/*/.vscode-server/**' \
+            --exclude='var/cache/apt/archives/**' \
+            --exclude='home/*/.vscode-server/' \
             / ${MOUNTDIR}/
     else
         msg "Skipping rsync since ${MOUNTDIR} is not a mount point"
@@ -305,7 +309,7 @@ do_resize() {
     partx --add ${LOOPBACK}
 
     msg "expanding filesystem"
-    e2fsck -f ${LOOPBACK}p2
+    e2fsck -pf ${LOOPBACK}p2
     resize2fs ${LOOPBACK}p2
 
     msg "Detaching ${IMAGE} from ${LOOPBACK}"
@@ -344,7 +348,7 @@ ctrl_c() {
 # Prints usage information
 usage() {
 
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     cat <<EOF
     ${MYNAME}
@@ -426,7 +430,7 @@ colors=${mypath%%${mypath##*/}}COLORS.sh
 [ -f ${colors} ] && . ${colors}
 
 # Make sure we have root rights
-[ ${EUID} -eq 0 ] || error "Sorry user I'm afraid I can't do this! Please run as root. Try sudo."
+[ ${EUID} -eq 0 ] || error "Sorry user, I'm afraid I can't do this. Please run as root. Try sudo."
 #
 # Check for dependencies
 #
@@ -480,7 +484,7 @@ declare -r ROOTSIZE=$(df -m --output=used / | tail -1) || error "size of / could
 declare -r SIZE=${SIZEARG:-$((${BOOTSIZE} + ${ROOTSIZE} + 500))} || error "size of imagefile could not calculated"
 declare -r RSIZE=${RSIZE:-1000}
 declare -r BLOCKSIZE=1M
-declare -r PARTSCHEME="MBR"
+declare -r PARTSCHEME="GPT"
 
 #
 # Preflight checks
@@ -544,6 +548,8 @@ else
         error "Default mount point ${MOUNTDIR} already exists"
     fi
 fi
+
+readonly MOUNTDIR
 #####################################################################################################
 #
 #  All preflight checks done
