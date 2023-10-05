@@ -96,9 +96,6 @@ change_bootenv() {
     #
     local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /boot) || error "Could not find device for /boot"
     local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || error "Could not find device for /"
-    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /boot) || error "Could not find device for /boot"
-    local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || error "Could not find device for /"
-
     local -r BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
         msg "Could not find PARTUUID of ${BOOTDEV}"
         editmanual=true
