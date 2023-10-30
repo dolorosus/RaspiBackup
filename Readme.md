@@ -12,20 +12,16 @@ This is not the size of the entire device, as 30 GB for a SSD drive where only 4
  
 It is really helpful, if you run your system from a large partition residing on a SSD drive.
 
-:warning: You may want to use this script for migrating to an external SSD. In this case you may end up with an MBR partition table on a 8TB SSD...  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  You may consider to change the line:  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  ```declare -r PARTSCHEME="MBR"``` to ```declare -r PARTSCHEME="GPT"```  
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;  But keep in mind: this is not thoroughly tested, but seems to work well (comments are welcome).
-
- :stop_sign: If you wish to restore to an ssd which contains additional partitions, using an imager will destroy theese additional partitions:exclamation:  
-
+ :stop_sign: Using an imager imager, all existing data on the target will be removed.
+ 
 :bulb: If your destination contains other partitions you want to keep, do the following:
-   
+
 - restore to a SD card 
 - boot from this SD card 
-- mount your SSD boot partition and the SSD root partition:
-- copy ```/``` to the SSD root partition  omitting ```/boot``` e.g. ```rsync -aEvx --del --exclude='/boot/**' / [mountdir of ssd root]```  
-- copy the content of ```/boot``` to the SSD boot partition e.g. ```cp -a /boot/*  [mountdir of ssd boot]```  
+- mount your SSD boot partition and the SSD root partition
+- copy `/` to the SSD root partition  omitting `/boot` or `/boot/firmware`
+   e.g. `rsync -aEvx --del --exclude='/boot/**' / [mountdir of ssd root]`  
+- copy the content of  `/boot` or `/boot/firmware` to the SSD boot partition e.g. `cp -a /boot/*  [mountdir of ssd boot]` 
 - get the PARTUUID of [mountdir of ssd boot] and [mountdir of ssd root]   
     ```
     sudo bash
@@ -36,8 +32,8 @@ It is really helpful, if you run your system from a large partition residing on 
     echo "Boot PARTUUID_:${BootPARTUUID}"
     echo "Root PARTUUID_:${RootPARTUUID}"
     ```
-- check/change PARTUUID in ```[mountdir of ssd boot]/cmdline.txt``` to ```${RootPARTUUID}```
-- check/change the PARTUUIDS of ```/``` and ```/boot``` in ```[mountdir of ssd root]/etc/fstab``` to ```${RootPARTUUID}``` and ```${BootPARTUUID}```
+- check/change PARTUUID in `[mountdir of ssd boot]/cmdline.txt` to `${RootPARTUUID}`
+- check/change the PARTUUIDS of `/` and `/boot` in `[mountdir of ssd root]/etc/fstab` to `${RootPARTUUID}` and `${BootPARTUUID}`
 
      
 ## Usage
