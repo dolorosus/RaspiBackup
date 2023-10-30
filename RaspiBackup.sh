@@ -23,8 +23,6 @@
 # Size of bootpart in MB
 
 #
-DEBUG=false
-
 
 # in case COLORS.sh is missing
 msgok() {
@@ -44,7 +42,6 @@ error() {
 
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 do_create() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     msg "Creating sparse "${IMAGE}", of ${SIZE}M"
@@ -80,8 +77,20 @@ do_create() {
     mkfs.ext4 ${LOOPBACK}p2
 }
 
-change_bootenv() {
+find_bootmp() {
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    mountpoint -q "/boot" && {
+        echo "/boot"
+        return 0
+    }
+    mountpoint -q "/boot/firmware" && {
+        echo "/boot/firmware"
+        return 0
+    }
+    return 1
+}
 
+change_bootenv() {
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     local editmanual=false
@@ -92,10 +101,11 @@ change_bootenv() {
     #
     cp /etc/fstab $fstab_tmp
     #
-    # assuming we have two partitions (/boot and /)
+    # assuming we have two partitions (/boot and /) ...
     #
-    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /boot) || error "Could not find device for /boot"
+    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE ${BOOTMP}) || error "Could not find device for /boot"
     local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || error "Could not find device for /"
+
     local -r BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
         msg "Could not find PARTUUID of ${BOOTDEV}"
         editmanual=true
@@ -133,9 +143,9 @@ change_bootenv() {
     #
     # Changing /boot/cmdline.txt
     #
-    
-    cp /boot/cmdline.txt $cmdline_tmp || {
-        msgwarn "could not copy ${LOOPBACK}p1/cmdline.txt to $cmdline_tmp"
+
+    cp ${BOOTMP}/cmdline.txt $cmdline_tmp || {
+        msgwarn "could not copy ${BOOTMP}/cmdline.txt to $cmdline_tmp"
         editmanual=true
     }
     change_PARTUUID "${RootPARTUUID}" "${dstRootPARTUUID}" "${cmdline_tmp}"
@@ -144,13 +154,12 @@ change_bootenv() {
         msgwarn "cmdline.txt cannot be changed automatically."
         msgwarn "correct cmdline.txt on destination manually."
     else
-        cp $cmdline_tmp ${MOUNTDIR}/boot/cmdline.txt
+        cp $cmdline_tmp ${MOUNTDIR}/${BOOTMP}/cmdline.txt
         msgok "PARTUUID changed successful in cmdline.txt"
     fi
 }
 
 change_PARTUUID() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     [ -z "${1}" -o -z "${2}" -o -z "${3}" ] && {
@@ -177,7 +186,6 @@ change_PARTUUID() {
 
 # Mounts the ${IMAGE} to ${LOOPBACK} (if needed) and ${MOUNTDIR}
 do_mount() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     # Check if do_create already attached the SD Image
@@ -195,7 +203,6 @@ do_mount() {
 }
 
 do_check() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     local err
@@ -228,7 +235,6 @@ do_check() {
 
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
 do_backup() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     local rsyncopt
@@ -240,8 +246,7 @@ do_backup() {
         msg "Starting rsync backup of / and /boot/ to ${MOUNTDIR}"
         msg "rsync /boot/ ${MOUNTDIR}/boot/"
         rsync ${rsyncopt} /boot/ ${MOUNTDIR}/boot/
-        msg ""
-        msg "rsync / to ${MOUNTDIR}"
+        msg "\nrsync / to ${MOUNTDIR}"
         rsync ${rsyncopt} --exclude='.gvfs/**' \
             --exclude='tmp/**' \
             --exclude='proc/**' \
@@ -250,6 +255,7 @@ do_backup() {
             --exclude='mnt/**' \
             --exclude='lost+found/**' \
             --exclude='var/swap ' \
+            --exclude='var/log/** ' \
             --exclude='home/*/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
             --exclude='home/*/.vscode-server/' \
@@ -260,7 +266,6 @@ do_backup() {
 }
 
 do_showdf() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     msg ""
@@ -270,7 +275,6 @@ do_showdf() {
 
 # Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
 do_umount() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     msg "Flushing to disk"
@@ -291,7 +295,6 @@ do_umount() {
 # resize image
 #
 do_resize() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     local addsize=${1:-1000}
@@ -319,7 +322,6 @@ do_resize() {
 
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
 do_compress() {
-
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     msg "Compressing ${IMAGE} to ${IMAGE}.gz"
@@ -332,7 +334,7 @@ do_compress() {
 
 # Tries to cleanup after Ctrl-C interrupt
 ctrl_c() {
-    msg "Ctrl-C detected."
+    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     if [ -s "${IMAGE}.gz.tmp" ]; then
         rm "${IMAGE}.gz.tmp"
@@ -347,8 +349,7 @@ ctrl_c() {
 
 # Prints usage information
 usage() {
-
-    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
     cat <<EOF
     ${MYNAME}
@@ -430,7 +431,7 @@ colors=${mypath%%${mypath##*/}}COLORS.sh
 [ -f ${colors} ] && . ${colors}
 
 # Make sure we have root rights
-[ ${EUID} -eq 0 ] || error "Sorry user, I'm afraid I can't do this. Please run as root. Try sudo."
+[ ${EUID} -eq 0 ] || error "Sorry Dave, I'm afraid I can't do this... Please run as root. Try sudo !!"
 #
 # Check for dependencies
 #
@@ -476,15 +477,15 @@ while getopts ":czdflL:i:r:s:" opt; do
 done
 shift $((OPTIND - 1))
 #
-# setting defaults if -i or -s is ommitted
+# setting defaults
 #
-
-declare -r BOOTSIZE=256
-declare -r ROOTSIZE=$(df -m --output=used / | tail -1) || error "size of / could not determined"
-declare -r SIZE=${SIZEARG:-$((${BOOTSIZE} + ${ROOTSIZE} + 500))} || error "size of imagefile could not calculated"
-declare -r RSIZE=${RSIZE:-1000}
-declare -r BLOCKSIZE=1M
-declare -r PARTSCHEME="GPT"
+declare -gxr BOOTSIZE=550
+declare -gxr BOOTMP=$(find_bootmp) || error "could not find mountpoint for boot partition"
+declare -gxr ROOTSIZE=$(df -m --output=used / | tail -1) || error "size of / could not determined"
+declare -gxr SIZE=${SIZEARG:-$((${BOOTSIZE} + ${ROOTSIZE} + 500))} || error "size of imagefile could not calculated"
+declare -gxr RSIZE=${RSIZE:-1000}
+declare -gxr BLOCKSIZE=1M
+declare -gxr PARTSCHEME="GPT"
 
 #
 # Preflight checks
@@ -492,7 +493,7 @@ declare -r PARTSCHEME="GPT"
 # Read the sdimage path from command line
 #   and check for existance
 #
-IMAGE=${1}
+declare -r IMAGE=${1}
 [ -z "${IMAGE}" ] && error "No sdimage specified"
 
 # Check if image exists
@@ -535,6 +536,7 @@ fi
 MOUNTDIR="${2}"
 if [ -z ${MOUNTDIR} ]; then
     MOUNTDIR=/mnt/$(basename "${IMAGE}")/
+    readonly MOUNTDIR
 else
     opt_mountdir=1
     [ -d ${MOUNTDIR} ] || error "Mount point ${MOUNTDIR} does not exist"
@@ -549,7 +551,6 @@ else
     fi
 fi
 
-readonly MOUNTDIR
 #####################################################################################################
 #
 #  All preflight checks done
