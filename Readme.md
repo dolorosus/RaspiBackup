@@ -59,8 +59,7 @@ E.g.:
 
 * -c creates the SD Image if it does not exist
 * -l writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
-* -z compresses the SD Image (after backup) to 'sdimage'.gz (deprecated)
-*    use pishrink instead.
+* -z compresses the SD Image (after backup) to 'sdimage'.gz (deprecated) use pishrink instead.
 * -d deletes the SD Image after successful compression
 * -f forces overwrite of 'sdimage'.gz if it exists
 * -L logfile writes rsync log to 'logfile'
