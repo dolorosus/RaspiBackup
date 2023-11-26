@@ -52,7 +52,7 @@ errexit() {
 
     case "${1}" in
     1)
-        echo "${CROSS} You have to be root to run this script${NOATT}"
+        echo "${CROSS} "I'm sorry user, I'm afraid I can't do that. You have to be root to run this script${NOATT}"
         ;;
 
     10)
