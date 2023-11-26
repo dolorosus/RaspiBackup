@@ -12,14 +12,14 @@ This is not the size of the entire device, as 30 GB for a SSD drive where only 4
  
 It is really helpful, if you run your system from a large partition residing on a SSD drive.
 
- :stop_sign: Using an imager imager, all existing data on the target will be removed.
+ :stop_sign: Using an imager all existing data on the target will be removed.
  
 :bulb: If your destination contains other partitions you want to keep, do the following:
 
 - restore to a SD card 
 - boot from this SD card 
 - mount your SSD boot partition and the SSD root partition
-- copy `/` to the SSD root partition  omitting `/boot` or `/boot/firmware`
+- copy `/` to the SSD root partition  omitting `/boot` or `/boot/firmware` (depending on your Rsapian version)
    e.g. `rsync -aEvx --del --exclude='/boot/**' / [mountdir of ssd root]`  
 - copy the content of  `/boot` or `/boot/firmware` to the SSD boot partition e.g. `cp -a /boot/*  [mountdir of ssd boot]` 
 - get the PARTUUID of [mountdir of ssd boot] and [mountdir of ssd root]   
