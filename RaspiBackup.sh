@@ -79,17 +79,15 @@ do_create() {
 
 find_bootmp() {
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
-    
+
     mountpoint -q "/boot/firmware" && {
         echo "/boot/firmware"
         return 0
     }
-    
     mountpoint -q "/boot" && {
         echo "/boot"
         return 0
     }
-
     return 1
 }
 
@@ -201,8 +199,8 @@ do_mount() {
     msg "Mounting ${LOOPBACK}p1 and ${LOOPBACK}p2 to ${MOUNTDIR}"
     [ -n "${opt_mountdir}" ] || mkdir ${MOUNTDIR}
     mount ${LOOPBACK}p2 ${MOUNTDIR}
-    mkdir -p ${MOUNTDIR}/boot
-    mount ${LOOPBACK}p1 ${MOUNTDIR}/boot
+    mkdir -p ${MOUNTDIR}/${BOOTMP}
+    mount ${LOOPBACK}p1 ${MOUNTDIR}/${BOOTMP}
 }
 
 do_check() {
@@ -220,7 +218,7 @@ do_check() {
     err=0
 
     fsck -y ${LOOPBACK}p1 || {
-        msgwarn "Checking /boot failed"
+        msgwarn "Checking ${BOOTMP} failed"
         err=1
     }
 
@@ -246,9 +244,9 @@ do_backup() {
     [ -n "${opt_log}" ] && rsyncopt="$rsyncopt --log-file ${LOG}"
 
     if mountpoint -q ${MOUNTDIR}; then
-        msg "Starting rsync backup of / and /boot/ to ${MOUNTDIR}"
-        msg "rsync /boot/ ${MOUNTDIR}/boot/"
-        rsync ${rsyncopt} /boot/ ${MOUNTDIR}/boot/
+        msg "Starting rsync backup of / and ${BOOTMP} to ${MOUNTDIR}"
+        msg "rsync ${rsyncopt} ${BOOTMP} ${MOUNTDIR}/${BOOTMP}"
+        rsync ${rsyncopt} ${BOOTMP} ${MOUNTDIR}/${BOOTMP}
         msg "\nrsync / to ${MOUNTDIR}"
         rsync ${rsyncopt} --exclude='.gvfs/**' \
             --exclude='tmp/**' \
@@ -285,7 +283,7 @@ do_umount() {
     sync
 
     msg "Unmounting ${LOOPBACK}p1 and ${LOOPBACK}p2 from ${MOUNTDIR}"
-    umount ${MOUNTDIR}/boot
+    umount ${MOUNTDIR}/${BOOTMP}
     umount ${MOUNTDIR}
     [ -n "${opt_mountdir}" ] || rmdir ${MOUNTDIR}
 
