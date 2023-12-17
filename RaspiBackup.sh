@@ -79,14 +79,17 @@ do_create() {
 
 find_bootmp() {
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
-    mountpoint -q "/boot" && {
-        echo "/boot"
-        return 0
-    }
+    
     mountpoint -q "/boot/firmware" && {
         echo "/boot/firmware"
         return 0
     }
+    
+    mountpoint -q "/boot" && {
+        echo "/boot"
+        return 0
+    }
+
     return 1
 }
 
