@@ -56,15 +56,15 @@ do_create() {
     fi
 
     if [ "${PARTSCHEME}" == "GPT" ]; then
-        #
-        # Use this on your own risk!
-        #
         msg "Creating partitions on ${LOOPBACK} using GTP scheme"
         parted -s "${LOOPBACK}" mktable gpt
         parted -s "${LOOPBACK}" mkpart "BOOT" fat32 4MiB ${BOOTSIZE}MiB
         parted -s "${LOOPBACK}" mkpart "ROOT" ext4 ${BOOTSIZE}MiB 100%
         parted -s "${LOOPBACK}" set 1 legacy_boot on
-    else
+    else         
+        #
+        # consider to use GPT partition scheme
+        #
         msg "Creating partitions on ${LOOPBACK}"
         parted -s "${LOOPBACK}" mktable msdos
         parted -s "${LOOPBACK}" mkpart primary fat32 4MiB ${BOOTSIZE}MiB
