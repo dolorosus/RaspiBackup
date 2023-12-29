@@ -54,10 +54,10 @@ msg () {
   fi
 }
 msgwarn () {
-    echo -e "${WARN} ${1}${NOATT}"
+    echo -e "${WARN} ${1}${NOATT}">&2
 }
 msgfail () {
-    echo -e "${CROSS} ${1}${NOATT}"
+    echo -e "${CROSS} ${1}${NOATT}">&2
 }
 
 msgheader() {
