@@ -52,44 +52,44 @@ errexit() {
 
     case "${1}" in
     1)
-        echo "${CROSS} "I'm sorry user, I'm afraid I can't do that. You have to be root to run this script${NOATT}"
+        echo "${CROSS} "I'm sorry user, I'm afraid I can't do that. You have to be root to run this script${NOATT}">&2
         ;;
 
     10)
-        echo "${CROSS} More than one backupfile according to ${destpath}/${destpatt} found."
+        echo "${CROSS} More than one backupfile according to ${destpath}/${destpatt} found.">&2
         echo "Can't decide which one to use.${NOATT}"
         ;;
 
     11)
-        echo "${CROSS} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}"
+        echo "${CROSS} backupfile according to ${destpath}/${destpatt} is no flatfile.${NOATT}">&2
         ;;
 
     12)
-        echo "${CROSS} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}"
+        echo "${CROSS} backupfile according to ${destpath}/${destpatt} is empty.${NOATT}">&2
         ;;
 
     20)
-        echo "${CROSS} No executable file $bckscript found.${NOATT}"
+        echo "${CROSS} No executable file $bckscript found.${NOATT}">&2
         ;;
 
     21)
-        echo "${CROSS} Snapshot functions $snapscript not found.${NOATT}"
+        echo "${CROSS} Snapshot functions $snapscript not found.${NOATT}">&2
         ;;
 
     25)
-        echo "${TICK} ${YELLOW}${action} $prog failed${NOATT}"
+        echo "${TICK} ${YELLOW}${action} $prog failed${NOATT}">&2
         ;;
 
     30)
-        echo "${CROSS} something went wrong..."
-        echo "the incomplete backupfile is named: ${destpath}/${tmppre}${bcknewname}"
-        echo "Resolve the issue, rename the the backupfile and restart"
-        echo "Good luck!${NOATT}"
+        echo "${CROSS} something went wrong...">&2
+        echo "the incomplete backupfile is named: ${destpath}/${tmppre}${bcknewname}">&2
+        echo "Resolve the issue, rename the the backupfile and restart">&2
+        echo "Good luck!${NOATT}">&2
 
         ;;
 
     *)
-        echo "${CROSS} An unknown error occured${NOATT}"
+        echo "${CROSS} An unknown error occured${NOATT}">&2
         set -- 99
         ;;
     esac
