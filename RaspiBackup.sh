@@ -35,23 +35,24 @@ msgwarn() {
     echo -e "${WARN} ${1}${NOATT}"
 }
 # Echos an error string in red text and exit
-error() {
+msgfail() {
     echo -e "${CROSS} ${1}${NOATT}" >&2
     exit 1
 }
 
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
+# shellcheck disable=SC2120
 do_create() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
-    msg "Creating sparse "${IMAGE}", of ${SIZE}M"
+    msg "Creating sparse ${IMAGE}, of ${SIZE}M"
     dd if=/dev/zero of="${IMAGE}" bs=${BLOCKSIZE} count=0 seek=${SIZE}
 
     if [ -s "${IMAGE}" ]; then
-        msg "Attaching "${IMAGE}" to ${LOOPBACK}"
-        losetup ${LOOPBACK} "${IMAGE}"
+        msg "Attaching ${IMAGE} to ${LOOPBACK}"
+        losetup "${LOOPBACK}" "${IMAGE}"
     else
-        error "${IMAGE} has not been created or has zero size"
+        msgfail "${IMAGE} has not been created or has zero size"
     fi
 
     if [ "${PARTSCHEME}" == "GPT" ]; then
@@ -59,26 +60,27 @@ do_create() {
         # Use this on your own risk!
         #
         msg "Creating partitions on ${LOOPBACK} using GTP scheme"
-        parted -s ${LOOPBACK} mktable gpt
-        parted -s ${LOOPBACK} mkpart "BOOT" fat32 4MiB ${BOOTSIZE}MiB
-        parted -s ${LOOPBACK} mkpart "ROOT" ext4 ${BOOTSIZE}MiB 100%
-        parted -s ${LOOPBACK} set 1 legacy_boot on
+        parted -s "${LOOPBACK}" mktable gpt
+        parted -s "${LOOPBACK}" mkpart "BOOT" fat32 4MiB ${BOOTSIZE}MiB
+        parted -s "${LOOPBACK}" mkpart "ROOT" ext4 ${BOOTSIZE}MiB 100%
+        parted -s "${LOOPBACK}" set 1 legacy_boot on
     else
         msg "Creating partitions on ${LOOPBACK}"
-        parted -s ${LOOPBACK} mktable msdos
-        parted -s ${LOOPBACK} mkpart primary fat32 4MiB ${BOOTSIZE}MiB
-        parted -s ${LOOPBACK} mkpart primary ext4 ${BOOTSIZE}MiB 100%
-        parted -s ${LOOPBACK} set 1 boot on
+        parted -s "${LOOPBACK}" mktable msdos
+        parted -s "${LOOPBACK}" mkpart primary fat32 4MiB ${BOOTSIZE}MiB
+        parted -s "${LOOPBACK}" mkpart primary ext4 ${BOOTSIZE}MiB 100%
+        parted -s "${LOOPBACK}" set 1 boot on
     fi
 
     msg "Formatting partitions"
-    partx --add ${LOOPBACK}
-    mkfs.vfat -n BOOT -F32 ${LOOPBACK}p1
-    mkfs.ext4 ${LOOPBACK}p2
+    partx --add "${LOOPBACK}"
+    mkfs.vfat -n BOOT -F32 "${LOOPBACK}"p1
+    mkfs.ext4 "${LOOPBACK}"p2
 }
 
+# shellcheck disable=SC2120
 find_bootmp() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     mountpoint -q "/boot/firmware" && {
         echo "/boot/firmware"
@@ -90,9 +92,9 @@ find_bootmp() {
     }
     return 1
 }
-
+# shellcheck disable=SC2120
 change_bootenv() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     local editmanual=false
     local fstab_tmp=/tmp/fstab.$$
@@ -104,8 +106,8 @@ change_bootenv() {
     #
     # assuming we have two partitions (/boot and /) ...
     #
-    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE ${BOOTMP}) || error "Could not find device for /boot"
-    local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || error "Could not find device for /"
+    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE "${BOOTMP}") || msgfail "Could not find device for /boot"
+    local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || msgfail "Could not find device for /"
 
     local -r BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
         msg "Could not find PARTUUID of ${BOOTDEV}"
@@ -145,7 +147,7 @@ change_bootenv() {
     # Changing /boot/cmdline.txt
     #
 
-    cp ${BOOTMP}/cmdline.txt $cmdline_tmp || {
+    cp "${BOOTMP}/cmdline.txt" "$cmdline_tmp" || {
         msgwarn "could not copy ${BOOTMP}/cmdline.txt to $cmdline_tmp"
         editmanual=true
     }
@@ -155,17 +157,17 @@ change_bootenv() {
         msgwarn "cmdline.txt cannot be changed automatically."
         msgwarn "correct cmdline.txt on destination manually."
     else
-        cp $cmdline_tmp ${MOUNTDIR}/${BOOTMP}/cmdline.txt
+        cp "$cmdline_tmp" "${MOUNTDIR}/${BOOTMP}/cmdline.txt"
         msgok "PARTUUID changed successful in cmdline.txt"
     fi
 }
 
 change_PARTUUID() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     [ -z "${1}" -o -z "${2}" -o -z "${3}" ] && {
         echo "${FUNCNAME[*]}   Parameter_:${*}"
-        echo "error either par1 or par2 or par3 is empty"
+        echo "msgfail either par1 or par2 or par3 is empty"
         return 1
     }
 
@@ -173,7 +175,7 @@ change_PARTUUID() {
     local -r dstUUID="${2}"
     local -r file="${3}"
 
-    grep -q "PARTUUID=${srcUUID}" ${file} && {
+    grep -q "PARTUUID=${srcUUID}" "${file}" && {
         msg "Changeing PARTUUID from ${srcUUID} to ${dstUUID} in ${file}"
         sed -i "s/PARTUUID=${srcUUID}/PARTUUID=${dstUUID}/" "${file}" || {
             msgwarn "PARTUUID ${srcUUID} has not been changed in  ${file}"
@@ -186,67 +188,71 @@ change_PARTUUID() {
 }
 
 # Mounts the ${IMAGE} to ${LOOPBACK} (if needed) and ${MOUNTDIR}
+# shellcheck disable=SC2120
 do_mount() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
-    # Check if do_create already attached the SD Image
-    [ $(losetup -f) = ${LOOPBACK} ] && {
+    # Check if do_create has already attached the SD Image
+    [ "$(losetup -f)" = "${LOOPBACK}" ] && {
         msg "Attaching ${IMAGE} to ${LOOPBACK}"
-        losetup ${LOOPBACK} "${IMAGE}"
-        partx --add ${LOOPBACK}
+        losetup "${LOOPBACK}" "${IMAGE}"
+        partx --add "${LOOPBACK}"
     }
 
     msg "Mounting ${LOOPBACK}p1 and ${LOOPBACK}p2 to ${MOUNTDIR}"
-    [ -n "${opt_mountdir}" ] || mkdir ${MOUNTDIR}
-    mount ${LOOPBACK}p2 ${MOUNTDIR}
-    mkdir -p ${MOUNTDIR}/${BOOTMP}
-    mount ${LOOPBACK}p1 ${MOUNTDIR}/${BOOTMP}
+    [ -n "${opt_mountdir}" ] || mkdir "${MOUNTDIR}"
+    mount "${LOOPBACK}p2" "${MOUNTDIR}"
+    mkdir -p "${MOUNTDIR}/${BOOTMP}"
+    mount "${LOOPBACK}p1" "${MOUNTDIR}/${BOOTMP}"
 }
 
+# shellcheck disable=SC2120
 do_check() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     local err
 
     # Check if do_create already attached the SD Image
-    [ $(losetup -f) = ${LOOPBACK} ] && {
+    [ "$(losetup -f)" = "${LOOPBACK}" ] && {
         msg "Attaching ${IMAGE} to ${LOOPBACK}"
-        losetup ${LOOPBACK} "${IMAGE}"
-        partx --add ${LOOPBACK}
+        losetup "${LOOPBACK}" "${IMAGE}"
+        partx --add "${LOOPBACK}"
     }
 
     err=0
 
-    fsck -y ${LOOPBACK}p1 || {
+    fsck -y "${LOOPBACK}p1" || {
         msgwarn "Checking ${BOOTMP} failed"
         err=1
     }
 
-    fsck -y ${LOOPBACK}p2 || {
+    fsck -y "${LOOPBACK}p2" || {
         msgwarn "Checking / failed"
         err=2
     }
 
     msg "Detaching ${IMAGE} from ${LOOPBACK}"
-    partx --delete ${LOOPBACK}
-    losetup -d ${LOOPBACK}
+    partx --delete "${LOOPBACK}"
+    losetup -d "${LOOPBACK}"
 
     return ${err}
 }
 
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
+# shellcheck disable=SC2120
 do_backup() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     local rsyncopt
 
     rsyncopt="-aEvx --del --stats"
     [ -n "${opt_log}" ] && rsyncopt="$rsyncopt --log-file ${LOG}"
 
-    if mountpoint -q ${MOUNTDIR}; then
+    if mountpoint -q "${MOUNTDIR}"; then
         msg "Starting rsync backup of / and ${BOOTMP} to ${MOUNTDIR}"
         msg "rsync ${rsyncopt} ${BOOTMP} ${MOUNTDIR}/${BOOTMP}"
-        rsync ${rsyncopt} ${BOOTMP} ${MOUNTDIR}/${BOOTMP}
+        rsync ${rsyncopt} "${BOOTMP}" "${MOUNTDIR}/${BOOTMP}"
+
         msg "\nrsync / to ${MOUNTDIR}"
         rsync ${rsyncopt} --exclude='.gvfs/**' \
             --exclude='tmp/**' \
@@ -260,21 +266,23 @@ do_backup() {
             --exclude='home/*/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
             --exclude='home/*/.vscode-server/' \
-            / ${MOUNTDIR}/
+            / "${MOUNTDIR}"/
     else
         msg "Skipping rsync since ${MOUNTDIR} is not a mount point"
     fi
 }
 
+# shellcheck disable=SC2120
 do_showdf() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     msg ""
-    df -mh ${LOOPBACK}p1 ${LOOPBACK}p2
+    df -mh "${LOOPBACK}p1" "${LOOPBACK}p2"
     msg ""
 }
 
 # Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
+# shellcheck disable=SC2120
 do_umount() {
     [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
@@ -283,29 +291,30 @@ do_umount() {
     sync
 
     msg "Unmounting ${LOOPBACK}p1 and ${LOOPBACK}p2 from ${MOUNTDIR}"
-    umount ${MOUNTDIR}/${BOOTMP}
-    umount ${MOUNTDIR}
-    [ -n "${opt_mountdir}" ] || rmdir ${MOUNTDIR}
+    umount "${MOUNTDIR}/${BOOTMP}"
+    umount "${MOUNTDIR}"
+    [ -n "${opt_mountdir}" ] || rmdir "${MOUNTDIR}"
 
     msg "Detaching ${IMAGE} from ${LOOPBACK}"
-    partx --delete ${LOOPBACK}
-    losetup -d ${LOOPBACK}
+    partx --delete "${LOOPBACK}"
+    losetup -d "${LOOPBACK}"
 }
 
 #
 # resize image
 #
+# shellcheck disable=SC2120
 do_resize() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     local addsize=${1:-1000}
 
-    do_check || error "Filesystemcheck failed. Resize aborted."
+    do_check || msgfail "Filesystemcheck failed. Resize aborted."
 
     do_umount >/dev/null 2>&1
 
     msg "increasing size of ${IMAGE} by ${SIZE}M"
-    truncate --size=+${addsize}M "${IMAGE}" || error "Error adding ${addsize}M to ${IMAGE}"
+    truncate --size=+${addsize}M "${IMAGE}" || msgfail "Error adding ${addsize}M to ${IMAGE}"
 
     losetup ${LOOPBACK} "${IMAGE}"
     msg "resize partition 2 of ${IMAGE}"
@@ -322,8 +331,9 @@ do_resize() {
 }
 
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
+# shellcheck disable=SC2120
 do_compress() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     msg "Compressing ${IMAGE} to ${IMAGE}.gz"
     pv -tpreb "${IMAGE}" | gzip >"${IMAGE}.gz.tmp"
@@ -335,7 +345,7 @@ do_compress() {
 
 # Tries to cleanup after Ctrl-C interrupt
 ctrl_c() {
-    [ ${DEBUG} ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
+    [ "${DEBqUG}" ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
 
     if [ -s "${IMAGE}.gz.tmp" ]; then
         rm "${IMAGE}.gz.tmp"
@@ -345,19 +355,20 @@ ctrl_c() {
 
     [ -n "${opt_log}" ] && msg "See rsync log in ${LOG}"
 
-    error "SD Image backup process interrupted"
+    msgfail "SD Image backup process interrupted"
 }
 
 # Prints usage information
+# shellcheck disable=SC2120
 usage() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     cat <<EOF
     ${MYNAME}
 
     Usage:
 
-        ${MYNAME} ${BOLD}start${NOATT} [-clzdf] [-L logfile] [-i sdcard] sdimage
+        ${MYNAME} ${BOLD}start${NOATT} [-clzdf] [-L logfile]  sdimage
         ${MYNAME} ${BOLD}mount${NOATT} [-c] sdimage [mountdir]
         ${MYNAME} ${BOLD}umount${NOATT} sdimage [mountdir]
         ${MYNAME} ${BOLD}check${NOATT} sdimage
@@ -428,16 +439,16 @@ WARN="[w]"
 QST="[?]"
 IDENT="$   "
 
-colors=${mypath%%${mypath##*/}}COLORS.sh
-[ -f ${colors} ] && . ${colors}
+colors=${mypath%%"${mypath##*/}"}COLORS.sh
+[ -f "${colors}" ] && . "${colors}"
 
 # Make sure we have root rights
-[ ${EUID} -eq 0 ] || error "Sorry Dave, I'm afraid I can't do this... Please run as root. Try sudo !!"
+[ ${EUID} -eq 0 ] || msgfail "Sorry Dave, I'm afraid I can't do this... Please run as root. Try sudo !!"
 #
 # Check for dependencies
 #
 for c in dd losetup parted partx mkfs.vfat mkfs.ext4 mountpoint rsync lsblk; do
-    command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
+    command -v ${c} >/dev/null 2>&1 || msgfail "Required program ${c} is not installed"
 done
 
 # Read the command from command line
@@ -452,7 +463,7 @@ start | mount | umount | check | gzip | chbootenv | showdf | resize)
     exit 0
     ;;
 *)
-    error "Invalid command or option: ${1}\nSee '${MYNAME} --help for usage"
+    msgfail "Invalid command or option: ${1}\nSee '${MYNAME} --help for usage"
     ;;
 esac
 shift 1
@@ -471,9 +482,10 @@ while getopts ":czdflL:i:r:s:" opt; do
         ;;
     r) RSIZE=${OPTARG} ;;
     s) SIZEARG=${OPTARG} ;;
+    i) msgwarn "-i is no longer used. The source will always be the boot device" ;;
 
-    \?) error "Invalid option: -${OPTARG}\nSee '${MYNAME} --help' for usage" ;;
-    :) error "Option -${OPTARG} requires an argument\nSee '${MYNAME} --help' for usage" ;;
+    \?) msgfail "Invalid option: -${OPTARG}\nSee '${MYNAME} --help' for usage" ;;
+    :) msgfail "Option -${OPTARG} requires an argument\nSee '${MYNAME} --help' for usage" ;;
     esac
 done
 shift $((OPTIND - 1))
@@ -481,9 +493,9 @@ shift $((OPTIND - 1))
 # setting defaults
 #
 declare -gxr BOOTSIZE=550
-declare -gxr BOOTMP=$(find_bootmp) || error "could not find mountpoint for boot partition"
-declare -gxr ROOTSIZE=$(df -m --output=used / | tail -1) || error "size of / could not determined"
-declare -gxr SIZE=${SIZEARG:-$((${BOOTSIZE} + ${ROOTSIZE} + 500))} || error "size of imagefile could not calculated"
+declare -gxr BOOTMP=$(find_bootmp) || msgfail "could not find mountpoint for boot partition"
+declare -gxr ROOTSIZE=$(df -m --output=used / | tail -1) || msgfail "size of / could not determined"
+declare -gxr SIZE=${SIZEARG:-$((BOOTSIZE + ROOTSIZE + 500))} || msgfail "size of imagefile could not calculated"
 declare -gxr RSIZE=${RSIZE:-1000}
 declare -gxr BLOCKSIZE=1M
 declare -gxr PARTSCHEME="GPT"
@@ -495,14 +507,14 @@ declare -gxr PARTSCHEME="GPT"
 #   and check for existance
 #
 declare -r IMAGE=${1}
-[ -z "${IMAGE}" ] && error "No sdimage specified"
+[ -z "${IMAGE}" ] && msgfail "No sdimage specified"
 
 # Check if image exists
-if [ ${opt_command} = umount ] || [ ${opt_command} = gzip ]; then
-    [ -f "${IMAGE}" ] || error "${IMAGE} does not exist"
+if [ "${opt_command}" = umount ] || [ "${opt_command}" = gzip ]; then
+    [ -f "${IMAGE}" ] || msgfail "${IMAGE} does not exist"
 else
     if [ ! -f "${IMAGE}" ] && [ ! -n "${opt_create}" ]; then
-        error "${IMAGE} does not exist\nUse -c to allow creation"
+        msgfail "${IMAGE} does not exist\nUse -c to allow creation"
     fi
 fi
 
@@ -511,11 +523,11 @@ fi
 #
 if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
     for c in pv gzip; do
-        command -v ${c} >/dev/null 2>&1 || error "Required program ${c} is not installed"
+        command -v ${c} >/dev/null 2>&1 || msgfail "Required program ${c} is not installed"
     done
 
     if [ -s "${IMAGE}".gz ] && [ ! -n "${opt_force}" ]; then
-        error "${IMAGE}.gz already exists\nUse -f to force overwriting"
+        msgfail "${IMAGE}.gz already exists\nUse -f to force overwriting"
     fi
 fi
 
@@ -523,10 +535,10 @@ fi
 # Identify which loopback device to use
 #
 LOOPBACK=$(losetup -j "${IMAGE}" | grep -o ^[^:]*)
-if [ ${opt_command} = umount ]; then
-    [ -z ${LOOPBACK} ] && error "No /dev/loop<X> attached to ${IMAGE}"
-elif [ ! -z ${LOOPBACK} ]; then
-    error "${IMAGE} already attached to ${LOOPBACK} mounted on $(grep ${LOOPBACK}p2 /etc/mtab | cut -d ' ' -f 2)/"
+if [ "${opt_command}" = "umount" ]; then
+    [ -z "${LOOPBACK}" ] && msgfail "No /dev/loop<X> attached to ${IMAGE}"
+elif [ ! -z "${LOOPBACK}" ]; then
+    msgfail "${IMAGE} already attached to ${LOOPBACK} mounted on $(grep ${LOOPBACK}p2 /etc/mtab | cut -d ' ' -f 2)/"
 else
     LOOPBACK=$(losetup -f)
 fi
@@ -535,20 +547,20 @@ fi
 # Read the optional mountdir from command line
 #
 MOUNTDIR="${2}"
-if [ -z ${MOUNTDIR} ]; then
+if [ -z "${MOUNTDIR}" ]; then
     MOUNTDIR=/mnt/$(basename "${IMAGE}")/
     readonly MOUNTDIR
 else
     opt_mountdir=1
-    [ -d ${MOUNTDIR} ] || error "Mount point ${MOUNTDIR} does not exist"
+    [ -d "${MOUNTDIR}" ] || msgfail "Mount point ${MOUNTDIR} does not exist"
 fi
 
 # Check if default mount point exists
-if [ ${opt_command} = umount ]; then
-    [ -d ${MOUNTDIR} ] || error "Default mount point ${MOUNTDIR} does not exist"
+if [ "${opt_command}" = "umount" ]; then
+    [ -d "${MOUNTDIR}" ] || msgfail "Default mount point ${MOUNTDIR} does not exist"
 else
-    if [ ! -n "${opt_mountdir}" ] && [ -d ${MOUNTDIR} ]; then
-        error "Default mount point ${MOUNTDIR} already exists"
+    if [ -z "${opt_mountdir}" ] && [ -d "${MOUNTDIR}" ]; then
+        msgfail "Default mount point ${MOUNTDIR} already exists"
     fi
 fi
 
@@ -609,10 +621,10 @@ showdf)
     do_umount
     ;;
 resize)
-    do_resize $RSIZE
+    do_resize "$RSIZE"
     ;;
 *)
-    error "Unknown command: ${opt_command}"
+    msgfail "Unknown command: ${opt_command}"
     ;;
 esac
 
