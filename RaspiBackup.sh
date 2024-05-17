@@ -56,15 +56,15 @@ do_create() {
     fi
 
     if [ "${PARTSCHEME}" == "GPT" ]; then
+        #
+        # Use this on your own risk!
+        #
         msg "Creating partitions on ${LOOPBACK} using GTP scheme"
         parted -s "${LOOPBACK}" mktable gpt
         parted -s "${LOOPBACK}" mkpart "BOOT" fat32 4MiB ${BOOTSIZE}MiB
         parted -s "${LOOPBACK}" mkpart "ROOT" ext4 ${BOOTSIZE}MiB 100%
         parted -s "${LOOPBACK}" set 1 legacy_boot on
-    else         
-        #
-        # consider to use GPT partition scheme
-        #
+    else
         msg "Creating partitions on ${LOOPBACK}"
         parted -s "${LOOPBACK}" mktable msdos
         parted -s "${LOOPBACK}" mkpart primary fat32 4MiB ${BOOTSIZE}MiB
@@ -265,7 +265,7 @@ do_backup() {
             --exclude='var/log/** ' \
             --exclude='home/*/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
-            --exclude='home/*/.vscode-server/' \
+            --exclude='home/*/.vscode-server/**' \
             / "${MOUNTDIR}"/
     else
         msg "Skipping rsync since ${MOUNTDIR} is not a mount point"
@@ -305,6 +305,7 @@ do_umount() {
 #
 # shellcheck disable=SC2120
 do_resize() {
+set -x
     [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
 
     local addsize=${1:-1000}
@@ -316,10 +317,11 @@ do_resize() {
     msg "increasing size of ${IMAGE} by ${SIZE}M"
     truncate --size=+${addsize}M "${IMAGE}" || msgfail "Error adding ${addsize}M to ${IMAGE}"
 
-    losetup ${LOOPBACK} "${IMAGE}"
+    losetup "${LOOPBACK}" "${IMAGE}"
+    partx --add "${LOOPBACK}"
+
     msg "resize partition 2 of ${IMAGE}"
-    parted -s ${LOOPBACK} resizepart 2 100%
-    partx --add ${LOOPBACK}
+    parted -sf "${LOOPBACK}" resizepart 2 100%
 
     msg "expanding filesystem"
     e2fsck -pf ${LOOPBACK}p2
@@ -328,6 +330,7 @@ do_resize() {
     msg "Detaching ${IMAGE} from ${LOOPBACK}"
     partx --delete ${LOOPBACK}
     losetup -d ${LOOPBACK}
+set +x
 }
 
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
@@ -521,7 +524,7 @@ fi
 #
 # Checks for compressing the image
 #
-if [ -n "${opt_compress}" ] || [ ${opt_command} = gzip ]; then
+if [ -n "${opt_compress}" ] || [ "${opt_command}" = "gzip" ]; then
     for c in pv gzip; do
         command -v ${c} >/dev/null 2>&1 || msgfail "Required program ${c} is not installed"
     done
