@@ -23,6 +23,7 @@
 # Size of bootpart in MB
 
 #
+DEBUG=1
 
 # in case COLORS.sh is missing
 msgok() {
@@ -43,7 +44,7 @@ msgfail() {
 # Creates a sparse "${IMAGE}"  and attaches to ${LOOPBACK}
 # shellcheck disable=SC2120
 do_create() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}    (${*})\n"
 
     msg "Creating sparse ${IMAGE}, of ${SIZE}M"
     dd if=/dev/zero of="${IMAGE}" bs=${BLOCKSIZE} count=0 seek=${SIZE}
@@ -79,26 +80,13 @@ do_create() {
 }
 
 # shellcheck disable=SC2120
-find_bootmp() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
-
-    mountpoint -q "/boot/firmware" && {
-        echo "/boot/firmware"
-        return 0
-    }
-    mountpoint -q "/boot" && {
-        echo "/boot"
-        return 0
-    }
-    return 1
-}
-# shellcheck disable=SC2120
 change_bootenv() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
-
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
+    
     local editmanual=false
     local fstab_tmp=/tmp/fstab.$$
     local cmdline_tmp=/tmp/cmdline.$$
+    mount_boot
     #
     # create a working copy of /etc/fstab
     #
@@ -106,7 +94,7 @@ change_bootenv() {
     #
     # assuming we have two partitions (/boot and /) ...
     #
-    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE "${BOOTMP}") || msgfail "Could not find device for /boot"
+    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE "${MOUNTDIR}/${BOOTMP}") || msgfail "Could not find device for /boot"
     local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || msgfail "Could not find device for /"
 
     local -r BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
@@ -140,8 +128,8 @@ change_bootenv() {
         msgwarn "correct fstab on destination manually."
         editmanual=false
     else
-        cp $fstab_tmp ${MOUNTDIR}/etc/fstab
-        msgok "PARTUUIDs changed successful in fstab"
+        cp "$fstab_tmp" "${MOUNTDIR}/etc/fstab"
+        msgok "PARTUUIDs changed successful in ${MOUNTDIR}/etc/fstab"
     fi
     #
     # Changing /boot/cmdline.txt
@@ -158,12 +146,12 @@ change_bootenv() {
         msgwarn "correct cmdline.txt on destination manually."
     else
         cp "$cmdline_tmp" "${MOUNTDIR}/${BOOTMP}/cmdline.txt"
-        msgok "PARTUUID changed successful in cmdline.txt"
+        msgok "PARTUUID changed successful in ${MOUNTDIR}/${BOOTMP}/cmdline.txt"
     fi
 }
 
 change_PARTUUID() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
 
     [ -z "${1}" -o -z "${2}" -o -z "${3}" ] && {
         echo "${FUNCNAME[*]}   Parameter_:${*}"
@@ -190,7 +178,7 @@ change_PARTUUID() {
 # Mounts the ${IMAGE} to ${LOOPBACK} (if needed) and ${MOUNTDIR}
 # shellcheck disable=SC2120
 do_mount() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
 
     # Check if do_create has already attached the SD Image
     [ "$(losetup -f)" = "${LOOPBACK}" ] && {
@@ -198,17 +186,62 @@ do_mount() {
         losetup "${LOOPBACK}" "${IMAGE}"
         partx --add "${LOOPBACK}"
     }
-
-    msg "Mounting ${LOOPBACK}p1 and ${LOOPBACK}p2 to ${MOUNTDIR}"
-    [ -n "${opt_mountdir}" ] || mkdir "${MOUNTDIR}"
-    mount "${LOOPBACK}p2" "${MOUNTDIR}"
-    mkdir -p "${MOUNTDIR}/${BOOTMP}"
+    mount_root
+    mount_boot
+}
+mount_boot() {
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    msg "Mounting ${LOOPBACK}p1  to ${MOUNTDIR}/${BOOTMP}"
+    mkdir -p "${MOUNTDIR}/${BOOTMP}"&>/dev/null
     mount "${LOOPBACK}p1" "${MOUNTDIR}/${BOOTMP}"
+}
+
+mount_root() {
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+    msg "Mounting ${LOOPBACK}p2 to ${MOUNTDIR}"
+    mkdir -p "${MOUNTDIR}"&>/dev/null
+    mount "${LOOPBACK}p2" "${MOUNTDIR}"
+}
+
+# Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
+# shellcheck disable=SC2120
+do_umount() {
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
+    msg "Flushing to disk"
+    sync
+
+    umount_boot
+    umount_root
+    rmdir "${MOUNTDIR}"
+
+    msg "Detaching ${IMAGE} from ${LOOPBACK}"
+    partx --delete "${LOOPBACK}"
+    losetup -d "${LOOPBACK}"
+}
+
+umount_boot() {
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
+    msg "Flushing to disk"
+    sync
+    msg "Unmounting ${LOOPBACK}p1 from ${MOUNTDIR}/${BOOTMP}"
+    umount "${MOUNTDIR}/${BOOTMP}"
+
+}
+
+umount_root() {
+    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
+
+    msg "Flushing to disk"
+    sync
+    msg "Unmounting ${LOOPBACK}p2 from ${MOUNTDIR}"
+    umount "${MOUNTDIR}"
 }
 
 # shellcheck disable=SC2120
 do_check() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
 
     local err
 
@@ -241,17 +274,17 @@ do_check() {
 # Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
 # shellcheck disable=SC2120
 do_backup() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
 
     local rsyncopt
 
     rsyncopt="-aEvx --del --stats"
     [ -n "${opt_log}" ] && rsyncopt="$rsyncopt --log-file ${LOG}"
-
     if mountpoint -q "${MOUNTDIR}"; then
         msg "Starting rsync backup of / and ${BOOTMP} to ${MOUNTDIR}"
-        msg "rsync ${rsyncopt} ${BOOTMP} ${MOUNTDIR}/${BOOTMP}"
-        rsync ${rsyncopt} "${BOOTMP}" "${MOUNTDIR}/${BOOTMP}"
+        msg "rsync ${rsyncopt} ${BOOTMP}/ ${MOUNTDIR}/${BOOTMP}"
+        rsync ${rsyncopt} "${BOOTMP}/" "${MOUNTDIR}/${BOOTMP}"
+        umount_boot
 
         msg "\nrsync / to ${MOUNTDIR}"
         rsync ${rsyncopt} --exclude='.gvfs/**' \
@@ -264,6 +297,7 @@ do_backup() {
             --exclude='var/swap ' \
             --exclude='var/log/** ' \
             --exclude='home/*/.cache/**' \
+            --exclude='root/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
             --exclude='home/*/.vscode-server/**' \
             / "${MOUNTDIR}"/
@@ -274,39 +308,22 @@ do_backup() {
 
 # shellcheck disable=SC2120
 do_showdf() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
 
     msg ""
     df -mh "${LOOPBACK}p1" "${LOOPBACK}p2"
     msg ""
 }
 
-# Unmounts the ${IMAGE} from ${MOUNTDIR} and ${LOOPBACK}
-# shellcheck disable=SC2120
-do_umount() {
-    [ ${DEBUG} ] && msg "${FUNCNAME[*]}     ${*}"
 
-    msg "Flushing to disk"
-    sync
-    sync
-
-    msg "Unmounting ${LOOPBACK}p1 and ${LOOPBACK}p2 from ${MOUNTDIR}"
-    umount "${MOUNTDIR}/${BOOTMP}"
-    umount "${MOUNTDIR}"
-    [ -n "${opt_mountdir}" ] || rmdir "${MOUNTDIR}"
-
-    msg "Detaching ${IMAGE} from ${LOOPBACK}"
-    partx --delete "${LOOPBACK}"
-    losetup -d "${LOOPBACK}"
-}
 
 #
 # resize image
 #
 # shellcheck disable=SC2120
 do_resize() {
-set -x
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
 
     local addsize=${1:-1000}
 
@@ -330,13 +347,13 @@ set -x
     msg "Detaching ${IMAGE} from ${LOOPBACK}"
     partx --delete ${LOOPBACK}
     losetup -d ${LOOPBACK}
-set +x
+
 }
 
 # Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
 # shellcheck disable=SC2120
 do_compress() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
 
     msg "Compressing ${IMAGE} to ${IMAGE}.gz"
     pv -tpreb "${IMAGE}" | gzip >"${IMAGE}.gz.tmp"
@@ -364,7 +381,7 @@ ctrl_c() {
 # Prints usage information
 # shellcheck disable=SC2120
 usage() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     ${*}"
+    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
 
     cat <<EOF
     ${MYNAME}
@@ -446,7 +463,7 @@ colors=${mypath%%"${mypath##*/}"}COLORS.sh
 [ -f "${colors}" ] && . "${colors}"
 
 # Make sure we have root rights
-[ ${EUID} -eq 0 ] || msgfail "Sorry Dave, I'm afraid I can't do this... Please run as root. Try sudo !!"
+[ ${EUID} -eq 0 ] || msgfail "Sorry user, I'm afraid I can't do this... Please run as root. Try sudo !!"
 #
 # Check for dependencies
 #
@@ -495,13 +512,18 @@ shift $((OPTIND - 1))
 #
 # setting defaults
 #
-declare -gxr BOOTSIZE=550
-declare -gxr BOOTMP=$(find_bootmp) || msgfail "could not find mountpoint for boot partition"
+
 declare -gxr ROOTSIZE=$(df -m --output=used / | tail -1) || msgfail "size of / could not determined"
 declare -gxr SIZE=${SIZEARG:-$((BOOTSIZE + ROOTSIZE + 500))} || msgfail "size of imagefile could not calculated"
 declare -gxr RSIZE=${RSIZE:-1000}
 declare -gxr BLOCKSIZE=1M
 declare -gxr PARTSCHEME="GPT"
+
+declare -gxr BOOTSIZE=550
+
+ mountpoint -q "/boot/firmware"  && declare -gxr BOOTMP="/boot/firmware"
+ mountpoint -q "/boot"  && declare -gxr BOOTMP="/boot"
+[ -z ${BOOTMP} ] msgfail "could not find mountpoint for boot partition"
 
 #
 # Preflight checks
