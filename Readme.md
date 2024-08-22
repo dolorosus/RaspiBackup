@@ -33,8 +33,11 @@ It is really helpful, if you run your system from a large partition residing on 
     echo "Root PARTUUID_:${RootPARTUUID}"
     ```
 - check/change PARTUUID in `[mountdir of ssd boot]/cmdline.txt` to `${RootPARTUUID}`
-- check/change the PARTUUIDS of `/` and `/boot` in `[mountdir of ssd root]/etc/fstab` to `${RootPARTUUID}` and `${BootPARTUUID}`
-
+- check/change the PARTUUIDS of `/` and  `/boot` or `/boot/firmware` (depending on your Raspian version) in `[mountdir of ssd root]/etc/fstab` to `${RootPARTUUID}` and `${BootPARTUUID}`
+- check if all symbolic links in `/`, `/boot`, `/boot/firmware` are present and points to the correct destination
+- use `raspi-config` for addopting the boot order
+- reboot
+- 
      
 ## Usage
 
