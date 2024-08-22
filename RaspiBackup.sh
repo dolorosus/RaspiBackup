@@ -23,6 +23,7 @@
 # Size of bootpart in MB
 #
 
+
 # in case COLORS.sh is missing
 msgok() {
     echo -e "${TICK} ${1}${NOATT}"
@@ -80,11 +81,13 @@ do_create() {
 # shellcheck disable=SC2120
 change_bootenv() {
     [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
+
     
     local editmanual=false
     local fstab_tmp=/tmp/fstab.$$
     local cmdline_tmp=/tmp/cmdline.$$
     mount_boot
+    mount_root
     #
     # create a working copy of /etc/fstab
     #
@@ -92,7 +95,7 @@ change_bootenv() {
     #
     # assuming we have two partitions (/boot and /) ...
     #
-    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE "${MOUNTDIR}/${BOOTMP}") || msgfail "Could not find device for /boot"
+    local -r BOOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE "${BOOTMP}") || msgfail "Could not find device for /boot"
     local -r ROOTDEV=$(findmnt --uniq --canonicalize --noheadings --output=SOURCE /) || msgfail "Could not find device for /"
 
     local -r BootPARTUUID=$(lsblk -n -o PARTUUID "${BOOTDEV}") || {
