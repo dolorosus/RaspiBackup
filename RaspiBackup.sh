@@ -21,9 +21,7 @@
 #
 # Defaults
 # Size of bootpart in MB
-
 #
-DEBUG=1
 
 # in case COLORS.sh is missing
 msgok() {
