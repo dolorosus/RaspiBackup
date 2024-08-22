@@ -19,7 +19,7 @@ It is really helpful, if you run your system from a large partition residing on 
 - restore to a SD card 
 - boot from this SD card 
 - mount your SSD boot partition and the SSD root partition
-- copy `/` to the SSD root partition  omitting `/boot` or `/boot/firmware` (depending on your Rsapian version)
+- copy `/` to the SSD root partition  omitting `/boot` or `/boot/firmware` (depending on your Raspian version)
    e.g. `rsync -aEvx --del --exclude='/boot/**' / [mountdir of ssd root]`  
 - copy the content of  `/boot` or `/boot/firmware` to the SSD boot partition e.g. `cp -a /boot/*  [mountdir of ssd boot]` 
 - get the PARTUUID of [mountdir of ssd boot] and [mountdir of ssd root]   
