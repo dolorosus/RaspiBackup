@@ -521,7 +521,7 @@ declare -gxr BOOTSIZE=550
 
  mountpoint -q "/boot/firmware"  && declare -gxr BOOTMP="/boot/firmware"
  mountpoint -q "/boot"  && declare -gxr BOOTMP="/boot"
-[ -z ${BOOTMP} ] msgfail "could not find mountpoint for boot partition"
+[ -z ${BOOTMP} ] && msgfail "could not find mountpoint for boot partition"
 
 #
 # Preflight checks
