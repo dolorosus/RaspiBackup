@@ -15,15 +15,11 @@
 #
 #
 # History removed
-# no longer needed, because this script moved to github
+# no longer needed, because this script moved to github:
+#
+# https://github.com/dolorosus/RaspiBackup
 #
 #
-#
-# Defaults
-# Size of bootpart in MB
-#
-
-
 # in case COLORS.sh is missing
 msgok() {
     echo -e "${TICK} ${1}${NOATT}"
@@ -272,7 +268,6 @@ do_check() {
     return ${err}
 }
 
-# Rsyncs content of ${SDCARD} to ${IMAGE} if properly mounted
 # shellcheck disable=SC2120
 do_backup() {
     [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
@@ -316,8 +311,6 @@ do_showdf() {
     msg ""
 }
 
-
-
 #
 # resize image
 #
@@ -351,19 +344,6 @@ do_resize() {
 
 }
 
-# Compresses ${IMAGE} to ${IMAGE}.gz using a temp file during compression
-# shellcheck disable=SC2120
-do_compress() {
-    [ "${DEBUG}" ] && msg "${FUNCNAME[*]}     (${*})\n"
-
-    msg "Compressing ${IMAGE} to ${IMAGE}.gz"
-    pv -tpreb "${IMAGE}" | gzip >"${IMAGE}.gz.tmp"
-    [ -s "${IMAGE}.gz.tmp" ] && {
-        mv -f "${IMAGE}.gz.tmp" "${IMAGE}.gz"
-        [ -n "${opt_delete}" ] && rm -f "${IMAGE}"
-    }
-}
-
 # Tries to cleanup after Ctrl-C interrupt
 ctrl_c() {
     [ "${DEBqUG}" ] || msg "${FUNCNAME[*]}  parameter_: ${*}"
@@ -393,15 +373,14 @@ usage() {
         ${MYNAME} ${BOLD}mount${NOATT} [-c] sdimage [mountdir]
         ${MYNAME} ${BOLD}umount${NOATT} sdimage [mountdir]
         ${MYNAME} ${BOLD}check${NOATT} sdimage
-        ${MYNAME} ${BOLD}gzip${NOATT} [-df] sdimage
+        ${MYNAME} ${BOLD}showdf${NOATT} sdimage
+        ${MYNAME} ${BOLD}resize${NOATT} [-r Mb] sdimage
 
         Commands:
 
             ${BOLD}start${NOATT}      starts complete backup of RPi's SD Card to 'sdimage'
             ${BOLD}mount${NOATT}      mounts the 'sdimage' to 'mountdir' (default: /mnt/'sdimage'/)
-            ${BOLD}mount${NOATT}      unmounts the 'sdimage' from 'mountdir'
-            ${BOLD}gzip${NOATT}       compresses the 'sdimage' to 'sdimage'.gz (only useful for archiving the image)
-                                      I would suggest PiShrink https://github.com/Drewsif/PiShrink.git
+            ${BOLD}umount${NOATT}     unmounts the 'sdimage' from 'mountdir'
             ${BOLD}chbootenv${NOATT}  changes PARTUUID entries in fstab and cmdline.txt in the image
             ${BOLD}showdf${NOATT}     shows allocation of the image
             ${BOLD}check${NOATT}      check the filesystems of sdimage
@@ -411,12 +390,10 @@ usage() {
 
             ${BOLD}-c${NOATT}         creates the SD Image if it does not exist
             ${BOLD}-l${NOATT}         writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
-            ${BOLD}-z${NOATT}         compresses the SD Image (after backup) to 'sdimage'.gz
-            ${BOLD}-d${NOATT}         deletes the SD Image after successful compression
             ${BOLD}-f${NOATT}         forces overwrite of 'sdimage'.gz if it exists
             ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
             ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: 250M+ size of / +500M) )
-            ${BOLD}-r Mb${NOATT}      the image will be resized by this value
+            ${BOLD}-r Mb${NOATT}      the image will be resized by this amount of megabytes
 
     Note:
             There are some excludes regarding docker. 
@@ -475,7 +452,7 @@ done
 # Read the command from command line
 case "${1}" in
 
-start | mount | umount | check | gzip | chbootenv | showdf | resize)
+start | mount | umount | check | chbootenv | showdf | resize)
     opt_command=${1}
     ;;
 
@@ -490,10 +467,9 @@ esac
 shift 1
 
 # Read the options from command line
-while getopts ":czdflL:i:r:s:" opt; do
+while getopts ":cdflL:i:r:s:" opt; do
     case ${opt} in
     c) opt_create=1 ;;
-    z) opt_compress=1 ;;
     d) opt_delete=1 ;;
     f) opt_force=1 ;;
     l) opt_log=1 ;;
@@ -541,19 +517,6 @@ if [ "${opt_command}" = umount ] || [ "${opt_command}" = gzip ]; then
 else
     if [ ! -f "${IMAGE}" ] && [ ! -n "${opt_create}" ]; then
         msgfail "${IMAGE} does not exist\nUse -c to allow creation"
-    fi
-fi
-
-#
-# Checks for compressing the image
-#
-if [ -n "${opt_compress}" ] || [ "${opt_command}" = "gzip" ]; then
-    for c in pv gzip; do
-        command -v ${c} >/dev/null 2>&1 || msgfail "Required program ${c} is not installed"
-    done
-
-    if [ -s "${IMAGE}".gz ] && [ ! -n "${opt_force}" ]; then
-        msgfail "${IMAGE}.gz already exists\nUse -f to force overwriting"
     fi
 fi
 
@@ -611,9 +574,6 @@ start)
     change_bootenv
     do_showdf
     do_umount
-    if [ -n "${opt_compress}" ]; then
-        do_compress
-    fi
     msgok "SD Image backup process completed."
     if [ -n "${opt_log}" ]; then
         msg "See rsync log in ${LOG}"
@@ -632,10 +592,6 @@ umount)
 check)
     do_check
     ;;
-gzip)
-    do_compress
-    ;;
-
 chbootenv)
     do_mount
     change_bootenv
