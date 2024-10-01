@@ -395,11 +395,6 @@ usage() {
             ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: 250M+ size of / +500M) )
             ${BOLD}-r Mb${NOATT}      the image will be resized by this amount of megabytes
 
-    Note:
-            There are some excludes regarding docker. 
-            No docker image nor any docker container will be in the backup.
-            If you want to include them, delete the excludes for /var/libdocker and /var/lib/containerd
-
     Examples:
 
         ${MYNAME} start -c /path/to/rpi_backup.img
