@@ -47,7 +47,7 @@ It is really helpful, if you run your system from a large partition residing on 
 * RaspiBackup.sh _COMMAND_ _OPTION_ sdimage
 
 E.g.:
-* RaspiBackup.sh start [-cslzdf] [-L logfile] sdimage
+* RaspiBackup.sh start [-csl] [-L logfile] sdimage
 * RaspiBackup.sh mount [-c] sdimage [mountdir]
 * RaspiBackup.sh umount sdimage [mountdir]
 * RaspiBackup.sh showdf sdimage
@@ -63,9 +63,8 @@ E.g.:
 
 * -c creates the SD Image if it does not exist
 * -l writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
-* -d deletes the SD Image after successful compression
 * -L logfile writes rsync log to 'logfile'
-* -s define the size of the image file in M
+* -s define the size of the image file in Mb
 
 ### Examples:
 
@@ -81,7 +80,7 @@ Start backup to `backup.img`, creating it if it does not exist, limiting
 RaspiBackup.sh start -s 8000 -c /path/to/backup.img
 ```
 
-Refresh of `backup.img`. (only noncompressed images can be refreshed) 
+Refresh of `backup.img`.
 ```
 RaspiBackup.sh start /path/to/backup.img
 ```
