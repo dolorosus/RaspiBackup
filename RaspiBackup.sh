@@ -10,13 +10,10 @@
 # Especially applications which use databases needs to be stopped (and the database systems too).
 #
 #  So it's a smart idea to put all these stop commands in a script and perfom it before
-#  starting the backup. After the backup terminates normally you may restart all stopped
+#  starting the backup. Or put the system into rescue mode using 'systemctl rescue'. 
+#  After the backup terminates normally you may restart all stopped
 #  applications or just reboot the system.
-#
-#
-# History removed
-# no longer needed, because this script moved to github:
-#
+# 
 # https://github.com/dolorosus/RaspiBackup
 #
 #
