@@ -390,7 +390,6 @@ usage() {
 
             ${BOLD}-c${NOATT}         creates the SD Image if it does not exist
             ${BOLD}-l${NOATT}         writes rsync log to 'sdimage'-YYYYmmddHHMMSS.log
-            ${BOLD}-f${NOATT}         forces overwrite of 'sdimage'.gz if it exists
             ${BOLD}-L logfile${NOATT} writes rsync log to 'logfile'
             ${BOLD}-s Mb${NOATT}      specifies the size of image in MB (default: 250M+ size of / +500M) )
             ${BOLD}-r Mb${NOATT}      the image will be resized by this amount of megabytes
@@ -462,11 +461,10 @@ esac
 shift 1
 
 # Read the options from command line
-while getopts ":cdflL:i:r:s:" opt; do
+while getopts ":cdlL:i:r:s:" opt; do
     case ${opt} in
     c) opt_create=1 ;;
     d) opt_delete=1 ;;
-    f) opt_force=1 ;;
     l) opt_log=1 ;;
     L)
         opt_log=1
