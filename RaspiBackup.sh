@@ -479,17 +479,15 @@ shift $((OPTIND - 1))
 #
 # setting defaults
 #
-
+declare -gxr BOOTSIZE=550
 declare -gxr ROOTSIZE=$(df -m --output=used / | tail -1) || msgfail "size of / could not determined"
 declare -gxr SIZE=${SIZEARG:-$((BOOTSIZE + ROOTSIZE + 2000))} || msgfail "size of imagefile could not calculated"
 declare -gxr RSIZE=${RSIZE:-1000}
 declare -gxr BLOCKSIZE=1M
 declare -gxr PARTSCHEME="GPT"
 
-declare -gxr BOOTSIZE=550
-
- mountpoint -q "/boot/firmware"  && declare -gxr BOOTMP="/boot/firmware"
- mountpoint -q "/boot"  && declare -gxr BOOTMP="/boot"
+mountpoint -q "/boot/firmware"  && declare -gxr BOOTMP="/boot/firmware"
+mountpoint -q "/boot"  && declare -gxr BOOTMP="/boot"
 [ -z ${BOOTMP} ] && msgfail "could not find mountpoint for boot partition"
 
 #
