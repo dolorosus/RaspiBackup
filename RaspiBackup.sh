@@ -287,8 +287,8 @@ do_backup() {
             --exclude='sys/**' \
             --exclude='mnt/**' \
             --exclude='lost+found/**' \
-            --exclude='var/swap ' \
-            --exclude='var/log/** ' \
+            --exclude='var/swap/**' \
+            --exclude='var/log/**' \
             --exclude='home/*/.cache/**' \
             --exclude='root/.cache/**' \
             --exclude='var/cache/apt/archives/**' \
