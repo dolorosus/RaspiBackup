@@ -329,7 +329,7 @@ do_resize() {
     partx --add "${LOOPBACK}"
 
     msg "resize partition 2 of ${IMAGE}"
-    parted -sf "${LOOPBACK}" resizepart 2 100%
+    parted -s "${LOOPBACK}" resizepart 2 100%
 
     msg "expanding filesystem"
     e2fsck -pf ${LOOPBACK}p2
