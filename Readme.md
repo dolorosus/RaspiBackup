@@ -7,7 +7,7 @@ Refer to https://www.raspberrypi.org/documentation/installation/installing-image
 
 **Read this text to the end, before use!**
 
-This script creates system backup to an image file. It creates backups of the device where the system was booted. It does not matter if the system was started from an SD card or a SSD drive. The size of the image will be calculated as the used size of the / partition plus 256m for /boot plus 500mb reserve.
+This script creates system backup to an image file. It creates backups of the device where the system was booted. It does not matter if the system was started from an SD card or a SSD drive. The size of the image will be calculated as the used size of the / partition plus 550m for /boot plus 1000mb reserve.
 This is not the size of the entire device, as 30 GB for a SSD drive where only 4 GB of root partition resides.
  
 It is really helpful, if you run your system from a large partition residing on a SSD drive.
