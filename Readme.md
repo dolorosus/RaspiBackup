@@ -75,7 +75,7 @@ RaspiBackup.sh start -c /path/to/backup.img
 
 Start backup to `backup.img`, creating it if it does not exist, limiting 
  the size to 8000M.
- Keep in mind: you are responsible defineing a size large enough to hold all files to backup! There's no such thing as a size check.  
+ Keep in mind: you are responsible defineing a size large enough to hold all files to backup! **There's no such thing as a size check**.  
 ```
 RaspiBackup.sh start -s 8000 -c /path/to/backup.img
 ```
