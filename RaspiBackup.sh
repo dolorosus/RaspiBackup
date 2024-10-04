@@ -66,7 +66,7 @@ do_create() {
     fi
 
     msg "Formatting partitions"
-    partx --add "${LOOPBACK}"
+    partx --add "${LOOPBACK}" >/dev/null 2>&1
     mkfs.vfat -n BOOT -F32 "${LOOPBACK}"p1
     mkfs.ext4 "${LOOPBACK}"p2
 }
