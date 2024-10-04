@@ -68,7 +68,7 @@ E.g.:
 
 ### Examples:
 
-Start backup to `backup.img`, creating it if it does not exist. The size of the image corresponds to the used size of the root partition, plus additional 500Mb for /boot and 1000Mb reserve.
+Start backup to `backup.img`, the `-c` option creates the file if it does not exist. If it does exist, it is deleted and recreated. The size of the image corresponds to the used size of the root partition, plus additional 500Mb for /boot and 1000Mb reserve.
 ```
 RaspiBackup.sh start -c /path/to/backup.img
 ```
