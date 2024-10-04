@@ -282,7 +282,6 @@ do_backup() {
         msg "\nrsync / to ${MOUNTDIR}"
         rsync ${rsyncopt} --exclude='.gvfs/**' \
             --exclude='tmp/**' \
-            --exclude='txp/**' \
             --exclude='proc/**' \
             --exclude='run/**' \
             --exclude='sys/**' \
