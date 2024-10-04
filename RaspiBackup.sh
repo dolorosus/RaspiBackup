@@ -486,8 +486,8 @@ declare -gxr RSIZE=${RSIZE:-1000}
 declare -gxr BLOCKSIZE=1M
 declare -gxr PARTSCHEME="GPT"
 
- mountpoint -q "/boot/firmware"  && declare -gxr BOOTMP="/boot/firmware"
- mountpoint -q "/boot"  && declare -gxr BOOTMP="/boot"
+mountpoint -q "/boot/firmware"  && declare -gxr BOOTMP="/boot/firmware"
+mountpoint -q "/boot"  && declare -gxr BOOTMP="/boot"
 [ -z ${BOOTMP} ] && msgfail "could not find mountpoint for boot partition"
 
 #
