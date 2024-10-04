@@ -66,7 +66,7 @@ do_create() {
     fi
 
     msg "Formatting partitions"
-    partx --add "${LOOPBACK}" >/dev/null 2>&1
+    partx --add "${LOOPBACK}" &>/dev/null
     mkfs.vfat -n BOOT -F32 "${LOOPBACK}"p1
     mkfs.ext4 "${LOOPBACK}"p2
 }
@@ -79,8 +79,8 @@ change_bootenv() {
     local editmanual=false
     local fstab_tmp=/tmp/fstab.$$
     local cmdline_tmp=/tmp/cmdline.$$
-    mount_boot
-    mount_root
+    mount_boot>&/dev/null
+    mount_root>&/dev/null
     #
     # create a working copy of /etc/fstab
     #
@@ -282,6 +282,7 @@ do_backup() {
         msg "\nrsync / to ${MOUNTDIR}"
         rsync ${rsyncopt} --exclude='.gvfs/**' \
             --exclude='tmp/**' \
+            --exclude='txp/**' \
             --exclude='proc/**' \
             --exclude='run/**' \
             --exclude='sys/**' \
@@ -320,7 +321,7 @@ do_resize() {
 
     do_check || msgfail "Filesystemcheck failed. Resize aborted."
 
-    do_umount >/dev/null 2>&1
+    do_umount &>/dev/null
 
     msg "increasing size of ${IMAGE} by ${SIZE}M"
     truncate --size=+${addsize}M "${IMAGE}" || msgfail "Error adding ${addsize}M to ${IMAGE}"
@@ -437,7 +438,7 @@ colors=${mypath%%"${mypath##*/}"}COLORS.sh
 # Check for dependencies
 #
 for c in dd losetup parted partx mkfs.vfat mkfs.ext4 mountpoint rsync lsblk; do
-    command -v ${c} >/dev/null 2>&1 || msgfail "Required program ${c} is not installed"
+    command -v ${c} &>/dev/null || msgfail "Required program ${c} is not installed"
 done
 
 # Read the command from command line
